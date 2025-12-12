@@ -1,6 +1,6 @@
-<img src="https://github.com/thm-insaid-labs/dragon-root/blob/main/dragonroot.png" align="left" width="200" height="auto" style="margin-right: 20px;">
+<img src="https://github.com/thm-insaid-labs/dragon-root/blob/main/dragonroot.png?raw=true" align="left" width="250" height="auto" style="margin-right: 20px;">
 
-# Dragon Root
+### *Dragon Root*
 
 **Dificultad:** Easy/Medium  
 **Temática:** Dragon Ball
