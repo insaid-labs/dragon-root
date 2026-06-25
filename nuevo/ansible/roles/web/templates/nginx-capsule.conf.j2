@@ -1,0 +1,23 @@
+# Dragon Radar Dashboard — nginx reverse proxy -> gunicorn
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name {{ box_hostname }};
+
+    # Hide nginx's real version, then advertise the 2015 banner.
+    # Requires the headers-more module (libnginx-mod-http-headers-more-filter).
+    server_tokens off;
+    more_clear_headers Server;
+    more_set_headers "Server: nginx/{{ nginx_banner_version }}";
+    more_set_headers "X-Radar-Build: {{ app_version }} ({{ app_build_date }})";
+
+    client_max_body_size 8m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

@@ -1,0 +1,21 @@
+# Dragon Radar Dashboard — configuration
+# Capsule Corporation — West City Data Center
+# {{ app_build_date }}  (v{{ app_version }})
+
+SECRET_KEY = "{{ app_secret_key }}"
+
+# --- Application metadata (surfaced on the dashboard) ---
+APP_VERSION = "{{ app_version }}"
+APP_FIXED_VERSION = "{{ app_fixed_version }}"
+APP_BUILD_DATE = "{{ app_build_date }}"
+APP_PARADOX_DATE = "{{ app_changelog_paradox_date }}"
+
+# --- Data store ---
+DB_PATH = "{{ db_path }}"
+
+# --- Deployment / maintenance access ---
+# Used by the radar deploy scripts to push builds to the field-test box.
+SSH_USER = "{{ ssh_loot_user }}"
+SSH_PASS = "{{ ssh_loot_pass }}"
+
+# TODO(bulma): move these out of config.py before we ever go public. -2015

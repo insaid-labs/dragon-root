@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Dragon Radar processor every 60 seconds
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+AccuracySec=1s
+Unit=radar-process.service
+
+[Install]
+WantedBy=timers.target

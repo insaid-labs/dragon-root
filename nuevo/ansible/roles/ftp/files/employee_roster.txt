@@ -1,0 +1,7 @@
+CAPSULE CORPORATION - EMPLOYEE DIRECTORY (INTERNAL)
+---------------------------------------------------
+bulma   - R&D Director      - mailbox enabled (POP3)
+goku    - Field Tester      - dashboard access
+vegeta  - Security (elite)  - no remote access
+
+NOTE: reset weak passwords (looking at you, bulma...).

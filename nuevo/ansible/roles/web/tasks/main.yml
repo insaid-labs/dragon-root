@@ -1,0 +1,170 @@
+---
+# ============================================================================
+#  web — Flask "Dragon Radar Dashboard" (vulnerable) + SQLite + gunicorn + nginx
+# ============================================================================
+
+- name: Install nginx + headers-more module
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - libnginx-mod-http-headers-more-filter
+    state: present
+    update_cache: true
+
+# ---- Application code --------------------------------------------------------
+- name: Create app root
+  ansible.builtin.file:
+    path: "{{ app_root }}"
+    state: directory
+    owner: capsule
+    group: capsule
+    mode: "0755"
+
+- name: Deploy application tree (app/, wsgi.py, requirements.txt, examples)
+  ansible.builtin.copy:
+    src: capsule/
+    dest: "{{ app_root }}/"
+    owner: capsule
+    group: capsule
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Strip any stray Python bytecode caches from the deployed app
+  ansible.builtin.shell: "find {{ app_root }} -name '__pycache__' -type d -prune -exec rm -rf {} +"
+  changed_when: false
+
+- name: Deploy advisory text (served at /security/CVE-2024-42069)
+  ansible.builtin.copy:
+    src: advisory.txt
+    dest: "{{ app_root }}/advisory.txt"
+    owner: capsule
+    group: capsule
+    mode: "0644"
+
+# ---- config.py: 0640 capsule:www-data — readable post-RCE, holds SSH loot ----
+- name: Deploy config.py (loot)
+  ansible.builtin.template:
+    src: config.py.j2
+    dest: "{{ app_root }}/config.py"
+    owner: capsule
+    group: www-data
+    mode: "0640"
+
+# ---- Python virtualenv -------------------------------------------------------
+- name: Create virtualenv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ venv_path }}"
+    creates: "{{ venv_path }}/bin/activate"
+
+- name: Make venv group/world readable+executable (www-data runs it)
+  ansible.builtin.file:
+    path: "{{ venv_path }}"
+    state: directory
+    owner: capsule
+    group: capsule
+    mode: "0755"
+    recurse: true
+
+- name: Install runtime into venv
+  ansible.builtin.pip:
+    virtualenv: "{{ venv_path }}"
+    name:
+      - "Flask=={{ flask_runtime }}"
+      - "Werkzeug=={{ werkzeug_runtime }}"
+      - "gunicorn=={{ gunicorn_runtime }}"
+      - "itsdangerous"
+
+# ---- Data directories --------------------------------------------------------
+- name: Create /var/capsule
+  ansible.builtin.file:
+    path: "{{ capsule_data }}"
+    state: directory
+    owner: capsule
+    group: capsule
+    mode: "0755"
+
+- name: Create uploads + processed (www-data writable)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0775"
+  loop:
+    - "{{ capsule_data }}/uploads"
+    - "{{ capsule_data }}/uploads/processed"
+
+- name: Create radar tmp cache dirs
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ capsule_data }}/tmp", owner: capsule, group: capsule, mode: "0755" }
+    - { path: "{{ capsule_data }}/tmp/.radarcache", owner: www-data, group: www-data, mode: "0755" }
+
+# ---- Database ----------------------------------------------------------------
+- name: Seed SQLite database (as capsule)
+  become_user: capsule
+  ansible.builtin.command:
+    cmd: "python3 {{ app_root }}/init_db.py"
+  environment:
+    DB_PATH: "{{ db_path }}"
+    WEB_USER: "{{ web_user }}"
+    WEB_PASS: "{{ web_pass }}"
+  changed_when: true
+
+- name: Database perms 0660 capsule:www-data
+  ansible.builtin.file:
+    path: "{{ db_path }}"
+    owner: capsule
+    group: www-data
+    mode: "0660"
+
+# ---- gunicorn service --------------------------------------------------------
+- name: Deploy gunicorn systemd unit
+  ansible.builtin.template:
+    src: gunicorn-capsule.service.j2
+    dest: /etc/systemd/system/capsule-radar.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart capsule-radar
+
+- name: Enable + start gunicorn
+  ansible.builtin.systemd:
+    name: capsule-radar
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# ---- nginx -------------------------------------------------------------------
+- name: Deploy nginx site
+  ansible.builtin.template:
+    src: nginx-capsule.conf.j2
+    dest: /etc/nginx/sites-available/capsule
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload nginx
+
+- name: Enable capsule site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/capsule
+    dest: /etc/nginx/sites-enabled/capsule
+    state: link
+  notify: reload nginx
+
+- name: Disable default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Enable + start nginx
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started

@@ -1,0 +1,89 @@
+---
+# ============================================================================
+#  SINGLE SOURCE OF TRUTH — Capsule Corp CTF
+#  Every flag, credential, version string and user lives here. Roles reference
+#  these vars so the whole box stays internally consistent.
+# ============================================================================
+
+# ---- Identity / theming ------------------------------------------------------
+box_hostname: capsulecorp.htb
+box_domain: capsulecorp.htb
+theme_year: 2015
+
+# touch -t format is [[CC]YY]MMDDhhmm[.ss]
+mtime_2015: "201505101200.00"     # box content lives in 2015
+mtime_2024: "202401010000.00"     # easter-egg artifacts arrive from 2024
+
+# ---- App branding (player-visible) ------------------------------------------
+app_name: "Dragon Radar Dashboard"
+app_version: "2.4.1"              # deployed (vulnerable) version
+app_fixed_version: "2.4.2"        # the fix that "doesn't exist yet" in 2015
+app_build_date: "2015-04-18"      # server's own date
+app_changelog_paradox_date: "2024-07-30"   # impossible: a fix dated in the future
+nginx_banner_version: "1.18.0"    # spoofed Server header
+ssh_banner_version: "OpenSSH 8.x" # cosmetic reference only (see base role note)
+
+# ---- Python web stack pins (period flavor) ----------------------------------
+# NOTE: requirements.txt advertises Flask {{ flask_documented }} as 2015 set
+# dressing. The role installs {{ flask_runtime }} into an isolated venv so the
+# box boots reliably on Debian 12 / Python 3.11. The deserialization bug is in
+# our own session.py and is independent of the Flask version.
+flask_documented: "1.1.2"
+flask_runtime: "2.0.3"
+werkzeug_runtime: "2.0.3"
+gunicorn_runtime: "20.1.0"
+
+# ---- System users -----------------------------------------------------------
+# Passwords are set as real OS passwords (used by SSH/PAM/Dovecot).
+system_users:
+  - name: capsule
+    uid: 1000
+    comment: "Capsule service account"
+    shell: /usr/sbin/nologin
+    password: "C4psule_svc_2015!"
+    extra_groups: []
+  - name: goku
+    uid: 1001
+    comment: "Field Tester"
+    shell: /bin/bash
+    password: "Kakar0t_SSH_2015!"
+    extra_groups: []
+  - name: bulma
+    uid: 1002
+    comment: "R&D Director"
+    shell: /bin/bash
+    password: "dragon"
+    extra_groups: [mail]
+
+# ---- Credentials surfaced during the chain ----------------------------------
+# Web dashboard login (leaked in POP3 email #1)
+web_user: "goku"
+web_pass: "9000"
+
+# POP3 mailbox login (bulma's weak password, hinted in FTP roster)
+pop3_user: "bulma"
+pop3_pass: "dragon"
+
+# SSH creds for goku (looted from config.py after web RCE)
+ssh_loot_user: "goku"
+ssh_loot_pass: "Kakar0t_SSH_2015!"
+app_secret_key: "kamehameha2015"
+
+# ---- Flags ------------------------------------------------------------------
+flag_ball_1: "CAPSULE{0n3_st4r_ftp_4n0nym0us}"
+flag_ball_2: "CAPSULE{tw0_st4rs_p0p3_m41lb0x}"
+flag_ball_3: "CAPSULE{thr33_st4rs_w3b_d3s3r14l}"
+flag_ball_4: "CAPSULE{f0ur_st4rs_h1dd3n_c0nf1g}"
+flag_ball_5: "CAPSULE{f1v3_st4rs_g0ku_h0m3}"
+flag_ball_6: "CAPSULE{s1x_st4rs_sud0_w1ldc4rd}"
+flag_ball_7: "CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}"
+flag_user:   "HTB{us3r_g0ku_p0w3r_l3v3l_9000}"
+flag_root:   "HTB{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}"
+flag_bonus:  "HTB{t1m3_p4r4d0x_4ll_b4lls}"
+
+# ---- Paths ------------------------------------------------------------------
+app_root: /var/www/capsule
+capsule_data: /var/capsule
+db_path: /var/capsule/capsule.db
+venv_path: /opt/capsule-venv
+dragonballs_dir: /var/capsule/dragonballs

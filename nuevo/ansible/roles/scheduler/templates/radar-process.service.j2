@@ -1,0 +1,9 @@
+[Unit]
+Description=Dragon Radar upload processor (benign, www-data)
+After=network.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+ExecStart=/usr/bin/python3 /opt/capsule/process_files.py

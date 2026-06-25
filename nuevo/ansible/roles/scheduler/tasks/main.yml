@@ -1,0 +1,45 @@
+---
+# ============================================================================
+#  scheduler — systemd timer (deterministic, NOT cron) running a benign job
+# ============================================================================
+
+- name: Create /opt/capsule
+  ansible.builtin.file:
+    path: /opt/capsule
+    state: directory
+    owner: capsule
+    group: capsule
+    mode: "0755"
+
+- name: Deploy benign processor
+  ansible.builtin.copy:
+    src: process_files.py
+    dest: /opt/capsule/process_files.py
+    owner: capsule
+    group: capsule
+    mode: "0755"
+
+- name: Deploy radar-process.service
+  ansible.builtin.template:
+    src: radar-process.service.j2
+    dest: /etc/systemd/system/radar-process.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+- name: Deploy radar-process.timer
+  ansible.builtin.template:
+    src: radar-process.timer.j2
+    dest: /etc/systemd/system/radar-process.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+- name: Enable + start radar-process.timer
+  ansible.builtin.systemd:
+    name: radar-process.timer
+    enabled: true
+    state: started
+    daemon_reload: true

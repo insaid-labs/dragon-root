@@ -1,0 +1,52 @@
+==============================================================================
+CVE-2024-42069
+==============================================================================
+Title:         Capsule Radar Dashboard Insecure Deserialization Remote Code
+               Execution via Unsigned Session Cookie
+Affected:      Capsule Corporation "Dragon Radar Dashboard"
+               Versions 2.0.0 through 2.4.1 (fixed in 2.4.2)
+Component:     Session management module (app/session.py)
+Vuln Type:     CWE-502: Deserialization of Untrusted Data
+Attack Vector: Network
+CVSS v3.1:     8.8 (High)
+Vector:        CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H
+------------------------------------------------------------------------------
+Description
+------------------------------------------------------------------------------
+The Dragon Radar Dashboard stores authenticated session state in a client-side
+cookie named "radar_session". The value is a base64-encoded Python pickle
+object that is deserialized server-side on every request WITHOUT any integrity
+verification (no HMAC, no signing key).
+
+An authenticated low-privilege user can craft a malicious pickle payload whose
+__reduce__ method executes an arbitrary OS command during deserialization,
+resulting in remote code execution as the web service account (www-data).
+------------------------------------------------------------------------------
+Impact
+------------------------------------------------------------------------------
+- Remote Code Execution as www-data
+- Full read access to the application database and config
+- Lateral movement to authenticated system users
+------------------------------------------------------------------------------
+Exploitation Requirements
+------------------------------------------------------------------------------
+1. Valid (low-privilege) web credentials (e.g. goku, obtained via POP3).
+2. Network access to the application (port 80).
+------------------------------------------------------------------------------
+Mitigation
+------------------------------------------------------------------------------
+- Upgrade to version 2.4.2 or later.
+- Replace pickle-based sessions with signed, JSON-based tokens.
+- Add HMAC integrity verification using a server-side secret.
+------------------------------------------------------------------------------
+Disclosure Timeline (note the temporal paradox)
+------------------------------------------------------------------------------
+2015-05-10  Vulnerability "discovered" in production logs (by a future IT worker)
+2015-05-11  Internal disclosure emailed to staff (see POP3 mailbox)
+2015-05-12  Exploitation observed in the wild (time traveler)
+2024-XX-XX  CVE assigned retroactively
+
+References:
+  - https://capsulecorp.htb/security/CVE-2024-42069
+  - internal://pop3/bulma/inbox/cve-disclosure
+==============================================================================

@@ -1,0 +1,86 @@
+---
+# ============================================================================
+#  flags — dragon balls #3,#4,#5, user.txt, goku SSH, dragonballs collection dir
+#  (Balls #1/#2 live in the ftp/mail roles; #6/#7 + root.txt in the privesc role.)
+# ============================================================================
+
+# ---- Ball #3: post-web-RCE, in the processed uploads (www-data) --------------
+- name: Dragon ball 3 (web deserialization loot)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_3 }}\n"
+    dest: "{{ capsule_data }}/uploads/processed/dragon_ball_3.txt"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+# ---- Ball #4: hidden radar cache (www-data) ----------------------------------
+- name: Dragon ball 4 (hidden config cache)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_4 }}\n"
+    dest: "{{ capsule_data }}/tmp/.radarcache/dragon_ball_4.txt"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+# ---- goku home: user flag + ball #5 + ssh key --------------------------------
+- name: goku training dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: goku
+    group: goku
+    mode: "0700"
+  loop:
+    - /home/goku/training
+    - /home/goku/training/memories
+
+- name: Dragon ball 5 (goku home)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_5 }}\n"
+    dest: /home/goku/training/memories/dragon_ball_5.txt
+    owner: goku
+    group: goku
+    mode: "0640"
+
+- name: user.txt
+  ansible.builtin.copy:
+    content: "{{ flag_user }}\n"
+    dest: /home/goku/user.txt
+    owner: goku
+    group: goku
+    mode: "0640"
+
+- name: goku .ssh dir
+  ansible.builtin.file:
+    path: /home/goku/.ssh
+    state: directory
+    owner: goku
+    group: goku
+    mode: "0700"
+
+- name: goku authorized_keys (inert pubkey; password path is the intended one)
+  ansible.builtin.copy:
+    src: goku_authorized_keys
+    dest: /home/goku/.ssh/authorized_keys
+    owner: goku
+    group: goku
+    mode: "0600"
+
+# ---- Shenlong collection directory (player populates this as root) -----------
+- name: Dragon ball collection altar dir
+  ansible.builtin.file:
+    path: "{{ dragonballs_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Leave a hint in the collection dir
+  ansible.builtin.copy:
+    content: |
+      Place all 7 dragon balls here as dragon_ball_1.txt .. dragon_ball_7.txt,
+      then run /root/invoke_shenlong.sh to summon Shenlong.
+    dest: "{{ dragonballs_dir }}/README.txt"
+    owner: root
+    group: root
+    mode: "0644"

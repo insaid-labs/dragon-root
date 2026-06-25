@@ -1,0 +1,28 @@
+---
+# ============================================================================
+#  Capsule Corporation CTF — master playbook
+#  Builds a self-contained, deliberately-vulnerable HackTheBox-style box.
+#  Run ONLY on an isolated lab VM. Do not expose to the internet.
+# ============================================================================
+- name: Build Capsule Corp CTF box
+  hosts: capsule
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: base        # hostname, users, packages, 2015 theming, SSH banner
+    - role: ftp         # vsftpd anonymous + roster/readme/ball1/diagram
+    - role: mail        # Dovecot POP3 + bulma mailbox (3 emails, ball2)
+    - role: web         # Flask vuln app + SQLite + gunicorn + nginx
+    - role: scheduler   # systemd timer running benign processor
+    - role: flags       # dragon balls 3-7, user/root/wish, mtimes
+    - role: privesc     # sudoers wildcard + radar-backup.sh + invoke_shenlong.sh
+
+  post_tasks:
+    - name: Build summary
+      ansible.builtin.debug:
+        msg:
+          - "Capsule Corp CTF build complete."
+          - "Services: 21/ftp 22/ssh 80/http 110/pop3"
+          - "Web dashboard creds (delivered via POP3): {{ web_user }}:{{ web_pass }}"
+          - "Run the exploit chain from a clean recon to validate."

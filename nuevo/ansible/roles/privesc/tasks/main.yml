@@ -1,0 +1,122 @@
+---
+# ============================================================================
+#  privesc — sudo wildcard target + Shenlong + root-area flags + mtime theming
+# ============================================================================
+
+# ---- The vulnerable sudo target (root:goku, 0750) ---------------------------
+- name: Deploy radar-backup.sh
+  ansible.builtin.copy:
+    src: radar-backup.sh
+    dest: /usr/local/bin/radar-backup.sh
+    owner: root
+    group: goku
+    mode: "0750"
+
+- name: Deploy sudoers rule for goku (validated)
+  ansible.builtin.copy:
+    src: sudoers_goku
+    dest: /etc/sudoers.d/goku
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Ensure /var/backups/radar exists
+  ansible.builtin.file:
+    path: /var/backups/radar
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# ---- Ball #6: root's secrets -------------------------------------------------
+- name: /root/.secrets dir
+  ansible.builtin.file:
+    path: /root/.secrets
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Dragon ball 6 (sudo wildcard loot)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_6 }}\n"
+    dest: /root/.secrets/dragon_ball_6.txt
+    owner: root
+    group: root
+    mode: "0600"
+
+# ---- Ball #7: the Shenlong altar --------------------------------------------
+- name: Shenlong altar dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /opt/shenlong
+    - /opt/shenlong/altar
+
+- name: Dragon ball 7 (Shenlong altar)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_7 }}\n"
+    dest: /opt/shenlong/altar/dragon_ball_7.txt
+    owner: root
+    group: root
+    mode: "0640"
+
+# ---- root.txt + bonus + the summon script -----------------------------------
+- name: root.txt
+  ansible.builtin.copy:
+    content: "{{ flag_root }}\n"
+    dest: /root/root.txt
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: wish_granted.txt (bonus)
+  ansible.builtin.copy:
+    content: "{{ flag_bonus }}\n"
+    dest: /root/wish_granted.txt
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: invoke_shenlong.sh
+  ansible.builtin.copy:
+    src: invoke_shenlong.sh
+    dest: /root/invoke_shenlong.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+# ===========================================================================
+#  Final pass: 2015 theming of file mtimes (easter-egg artifacts -> 2024)
+#  Runs last so every artifact from every role already exists.
+# ===========================================================================
+- name: Normalize box-content mtimes to 2015
+  ansible.builtin.shell: |
+    set -e
+    touch -t {{ mtime_2015 }} \
+      /srv/ftp/employee_roster.txt \
+      /srv/ftp/network_diagram.png \
+      /srv/ftp/dragon_ball_1.txt \
+      /var/mail/bulma \
+      /var/capsule/uploads/processed/dragon_ball_3.txt \
+      /var/capsule/tmp/.radarcache/dragon_ball_4.txt \
+      /home/goku/training/memories/dragon_ball_5.txt \
+      /home/goku/user.txt \
+      /root/.secrets/dragon_ball_6.txt \
+      /opt/shenlong/altar/dragon_ball_7.txt \
+      /root/root.txt \
+      /root/wish_granted.txt \
+      /root/invoke_shenlong.sh \
+      /usr/local/bin/radar-backup.sh
+    find /var/www/capsule -exec touch -t {{ mtime_2015 }} {} +
+  changed_when: true
+
+- name: Easter egg from the future -> 2024 mtime
+  ansible.builtin.command:
+    cmd: "touch -t {{ mtime_2024 }} /srv/ftp/README_2024.txt"
+  changed_when: true

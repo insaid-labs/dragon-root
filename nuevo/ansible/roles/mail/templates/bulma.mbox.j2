@@ -1,0 +1,50 @@
+From bulma@capsulecorp.htb Sun May 10 09:12:03 2015
+From: bulma@capsulecorp.htb
+To: goku@capsulecorp.htb
+Date: Sun, 10 May 2015 09:12:03 +0000
+Subject: Your Dragon Radar Dashboard login
+Status: O
+
+Goku, your dashboard password is: {{ web_pass }}
+Stop writing it on sticky notes. - Bulma
+
+From vegeta@capsulecorp.htb Mon May 11 14:02:55 2015
+From: vegeta@capsulecorp.htb
+To: bulma@capsulecorp.htb
+Date: Mon, 11 May 2015 14:02:55 +0000
+Subject: SECURITY - Radar Dashboard deserialization flaw (CVE-2024-42069)
+Status: O
+
+Bulma,
+
+The radar_session cookie is an UNSIGNED pickle. Anyone authenticated
+can get RCE. Current version {{ app_version }} is vulnerable. Patch to
+{{ app_fixed_version }} NOW.
+
+I logged it in the incident tracker as CVE-2024-42069. Don't ask me why
+it has a 2024 number on a 2015 bug -- the ticket showed up that way.
+
+- Vegeta, Security (elite)
+
+From bulma@capsulecorp.htb Tue May 12 08:40:10 2015
+From: bulma@capsulecorp.htb
+To: bulma@capsulecorp.htb
+Date: Tue, 12 May 2015 08:40:10 +0000
+Subject: keepsake
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="DRAGONBALL2STARS"
+Status: O
+
+--DRAGONBALL2STARS
+Content-Type: text/plain; charset=us-ascii
+
+A little keepsake from the lab. Keep it safe -- you never know when
+you'll need to make a wish.
+--DRAGONBALL2STARS
+Content-Type: text/plain; name="dragon_ball_2.txt"
+Content-Disposition: attachment; filename="dragon_ball_2.txt"
+Content-Transfer-Encoding: base64
+
+{{ (flag_ball_2 + "\n") | b64encode }}
+--DRAGONBALL2STARS--
+

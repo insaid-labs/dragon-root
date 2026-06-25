@@ -1,0 +1,74 @@
+---
+# ============================================================================
+#  ftp — vsftpd 3.0.3 anonymous read-only + recon artifacts
+# ============================================================================
+
+- name: Install vsftpd
+  ansible.builtin.apt:
+    name: vsftpd
+    state: present
+    update_cache: true
+
+- name: Ensure anonymous root exists (root-owned, NOT writable by ftp)
+  ansible.builtin.file:
+    path: /srv/ftp
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure vsftpd secure chroot dir exists
+  ansible.builtin.file:
+    path: /var/run/vsftpd/empty
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy employee roster
+  ansible.builtin.copy:
+    src: employee_roster.txt
+    dest: /srv/ftp/employee_roster.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy network diagram (POP3 on 110)
+  ansible.builtin.copy:
+    src: network_diagram.png
+    dest: /srv/ftp/network_diagram.png
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy dragon ball 1 (FTP anonymous)
+  ansible.builtin.copy:
+    content: "{{ flag_ball_1 }}\n"
+    dest: /srv/ftp/dragon_ball_1.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+# ---- EASTER EGG: a note from 2024 sitting among 2015 files -------------------
+- name: Deploy README_2024 easter egg
+  ansible.builtin.copy:
+    src: README_2024.txt
+    dest: /srv/ftp/README_2024.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy vsftpd config
+  ansible.builtin.template:
+    src: vsftpd.conf.j2
+    dest: /etc/vsftpd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart vsftpd
+
+- name: Enable + start vsftpd
+  ansible.builtin.service:
+    name: vsftpd
+    enabled: true
+    state: started

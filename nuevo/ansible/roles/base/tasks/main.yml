@@ -1,0 +1,78 @@
+---
+# ============================================================================
+#  base — hostname, users, packages, SSH + 2015 theming
+# ============================================================================
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - sudo
+      - acl                 # needed for become_user unprivileged file ops
+      - python3
+      - python3-venv
+      - python3-pip
+      - python3-passlib     # for password_hash filter on the control node
+      - openssh-server
+      - ca-certificates
+      - tar
+      - coreutils
+    state: present
+    update_cache: true
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ box_hostname }}"
+
+- name: Ensure /etc/hosts maps the hostname
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ box_hostname }} capsulecorp"
+    state: present
+
+- name: Create system users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    comment: "{{ item.comment }}"
+    shell: "{{ item.shell }}"
+    groups: "{{ item.extra_groups }}"
+    append: true
+    password: "{{ item.password | password_hash('sha512') }}"
+    create_home: true
+  loop: "{{ system_users }}"
+  loop_control:
+    label: "{{ item.name }} (uid {{ item.uid }})"
+
+# ---- SSH: dated login banner + allow password auth (intended lateral path) ---
+- name: Deploy 2015 login banner
+  ansible.builtin.template:
+    src: issue.net.j2
+    dest: /etc/issue.net
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy MOTD
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: SSH drop-in (banner + password auth)
+  ansible.builtin.template:
+    src: sshd-capsule.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-capsule.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "/usr/sbin/sshd -t -f %s"
+  notify: restart ssh
+
+# NOTE: The real OpenSSH daemon version is whatever Debian 12 ships (9.x). The
+# "{{ ssh_banner_version }}" reference is cosmetic flavour in the banner text;
+# spoofing the SSH protocol version string would require recompiling sshd and
+# is intentionally out of scope. vsftpd 3.0.3 and Dovecot 2.3.x DO match the
+# 2015 story natively on Debian 12.

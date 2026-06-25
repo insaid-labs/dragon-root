@@ -1,0 +1,11 @@
+---
+- name: restart capsule-radar
+  ansible.builtin.systemd:
+    name: capsule-radar
+    state: restarted
+    daemon_reload: true
+
+- name: reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

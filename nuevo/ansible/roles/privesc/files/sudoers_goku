@@ -1,0 +1,3 @@
+# Capsule Corp — ops convenience: goku may snapshot radar build dirs as root.
+# (The trailing wildcard lets ops pass any directory to back up.)
+goku ALL=(root) NOPASSWD: /usr/local/bin/radar-backup.sh *

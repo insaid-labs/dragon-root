@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dragon Radar Dashboard — Login</title>
+  <style>
+    :root { --orange:#ed8936; --dark:#2d3748; --bg:#1a202c; --card:#252d3d; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", system-ui, sans-serif;
+           background: radial-gradient(circle at 50% 0%, #2d3748, var(--bg));
+           color:#e2e8f0; min-height:100vh; display:flex; align-items:center;
+           justify-content:center; }
+    .card { background:var(--card); border:1px solid #3a4357; border-radius:16px;
+            padding:40px; width:340px; box-shadow:0 12px 40px rgba(0,0,0,.45); }
+    .ball { width:64px; height:64px; border-radius:50%; margin:0 auto 16px;
+            background: radial-gradient(circle at 35% 30%, #ffd27a, var(--orange));
+            display:flex; align-items:center; justify-content:center;
+            color:#9c4221; font-weight:700; font-size:22px; }
+    h1 { text-align:center; font-size:20px; margin:0 0 4px; }
+    .sub { text-align:center; color:#a0aec0; font-size:13px; margin-bottom:24px; }
+    label { display:block; font-size:13px; margin:12px 0 4px; color:#cbd5e0; }
+    input { width:100%; padding:10px; border-radius:8px; border:1px solid #3a4357;
+            background:#1a202c; color:#e2e8f0; }
+    button { width:100%; margin-top:20px; padding:11px; border:0; border-radius:8px;
+             background:var(--orange); color:#1a202c; font-weight:700; cursor:pointer; }
+    .err { background:#742a2a; color:#fed7d7; padding:9px; border-radius:8px;
+           font-size:13px; margin-top:16px; text-align:center; }
+    .foot { text-align:center; color:#718096; font-size:11px; margin-top:20px; }
+  </style>
+</head>
+<body>
+  <form class="card" method="POST" action="/login">
+    <div class="ball">★</div>
+    <h1>Dragon Radar Dashboard</h1>
+    <div class="sub">Capsule Corporation — Authorized access only</div>
+    <label for="username">Username</label>
+    <input id="username" name="username" autocomplete="off" autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="off">
+    <button type="submit">Sign in</button>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <div class="foot">West City Data Center</div>
+  </form>
+</body>
+</html>

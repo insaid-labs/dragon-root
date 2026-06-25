@@ -1,0 +1,7 @@
+# Managed by Ansible (capsule base role)
+Banner /etc/issue.net
+PasswordAuthentication yes
+PubkeyAuthentication yes
+UsePAM yes
+# Intended lateral path: www-data -> goku over SSH using creds looted from
+# config.py. Password auth is therefore deliberately enabled.

@@ -1,0 +1,18 @@
+# Managed by Ansible (capsule mail role) — POP3-only, lab-friendly.
+# Loaded last so it overrides Debian defaults (10-ssl.conf, 10-mail.conf, ...).
+protocols = pop3
+
+# No TLS in the isolated lab; allow plaintext POP3 auth.
+ssl = no
+disable_plaintext_auth = no
+auth_mechanisms = plain login
+
+# Classic mbox: INBOX is the traditional /var/mail spool.
+mail_location = mbox:~/mail:INBOX=/var/mail/%u
+mail_privileged_group = mail
+
+service pop3-login {
+  inet_listener pop3 {
+    port = 110
+  }
+}

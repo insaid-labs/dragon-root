@@ -1,0 +1,60 @@
+---
+# ============================================================================
+#  mail — Dovecot 2.3.x POP3-only + bulma mailbox (3 emails, ball #2)
+# ============================================================================
+
+- name: Install Dovecot (core + pop3d only)
+  ansible.builtin.apt:
+    name:
+      - dovecot-core
+      - dovecot-pop3d
+    state: present
+    update_cache: true
+
+- name: Allow plaintext auth in 10-auth.conf (spec-referenced file)
+  ansible.builtin.lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^#?\s*disable_plaintext_auth\s*='
+    line: "disable_plaintext_auth = no"
+    state: present
+  notify: restart dovecot
+
+- name: Drop in POP3-only / no-TLS / mbox override
+  ansible.builtin.template:
+    src: 99-capsule.conf.j2
+    dest: /etc/dovecot/conf.d/99-capsule.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart dovecot
+
+# ---- bulma's mailbox: exactly 3 messages ------------------------------------
+- name: Ensure /var/mail exists
+  ansible.builtin.file:
+    path: /var/mail
+    state: directory
+    owner: root
+    group: mail
+    mode: "1777"
+
+- name: Deploy bulma INBOX mbox
+  ansible.builtin.template:
+    src: bulma.mbox.j2
+    dest: /var/mail/bulma
+    owner: bulma
+    group: mail
+    mode: "0660"
+
+- name: Ensure bulma has a mail dir for dovecot index files
+  ansible.builtin.file:
+    path: /home/bulma/mail
+    state: directory
+    owner: bulma
+    group: bulma
+    mode: "0700"
+
+- name: Enable + start Dovecot
+  ansible.builtin.service:
+    name: dovecot
+    enabled: true
+    state: started

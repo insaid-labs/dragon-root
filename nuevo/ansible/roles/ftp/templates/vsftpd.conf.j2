@@ -1,0 +1,29 @@
+# Capsule Corp FTP — vsftpd 3.0.3 (Debian 12 native, matches the 2015 story)
+# Anonymous, READ-ONLY archive of the Dragon Radar project.
+listen=YES
+listen_ipv6=NO
+
+anonymous_enable=YES
+local_enable=NO
+no_anon_password=YES
+anon_root=/srv/ftp
+
+# Read-only: every write vector disabled.
+write_enable=NO
+anon_upload_enable=NO
+anon_mkdir_write_enable=NO
+anon_other_write_enable=NO
+
+hide_ids=YES
+dirmessage_enable=YES
+ftpd_banner=Capsule Corp FTP -- Dragon Radar archive ({{ theme_year }}). Anonymous read-only.
+
+# Passive mode range (open these in the lab firewall if needed).
+pasv_enable=YES
+pasv_min_port=40000
+pasv_max_port=40100
+
+# vsftpd 3.0.3 + some modern kernels throw a seccomp error on download; disable.
+seccomp_sandbox=NO
+secure_chroot_dir=/var/run/vsftpd/empty
+pam_service_name=vsftpd

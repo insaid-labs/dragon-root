@@ -1,0 +1,29 @@
+"""Patched session module (shipped in 2.4.2 — NOT deployed on this box).
+
+Demonstrates the correct fix for CVE-2024-42069:
+  * No pickle. State is JSON, which cannot execute code on load.
+  * Integrity is enforced with an itsdangerous HMAC signature keyed on a
+    server-side secret, so a client cannot forge or tamper with the cookie.
+"""
+import json
+
+from itsdangerous import BadSignature, URLSafeSerializer
+
+COOKIE_NAME = "radar_session"
+
+
+def _serializer(secret_key: str) -> URLSafeSerializer:
+    return URLSafeSerializer(secret_key, salt="radar-session")
+
+
+def serialize_session(data: dict, secret_key: str) -> str:
+    # JSON payload + HMAC signature. Safe to hand to the client.
+    return _serializer(secret_key).dumps(data)
+
+
+def deserialize_session(cookie_value: str, secret_key: str):
+    try:
+        return _serializer(secret_key).loads(cookie_value)
+    except BadSignature:
+        # Tampered or forged cookie -> reject, do not execute anything.
+        return {}

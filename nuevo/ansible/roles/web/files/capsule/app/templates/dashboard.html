@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dragon Radar Dashboard</title>
+  <style>
+    :root { --orange:#ed8936; --bg:#1a202c; --card:#252d3d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; background:var(--bg);
+           color:#e2e8f0; }
+    header { background:var(--card); padding:18px 28px; display:flex; align-items:center;
+             gap:14px; border-bottom:2px solid var(--orange); }
+    header .ball { width:34px; height:34px; border-radius:50%;
+            background: radial-gradient(circle at 35% 30%, #ffd27a, var(--orange)); }
+    header h1 { font-size:18px; margin:0; }
+    .who { margin-left:auto; color:#a0aec0; font-size:13px; }
+    main { padding:28px; max-width:980px; margin:0 auto; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .panel { background:var(--card); border:1px solid #3a4357; border-radius:12px; padding:20px; }
+    .panel h2 { font-size:14px; color:#cbd5e0; margin:0 0 10px; }
+    .big { font-size:30px; font-weight:700; color:var(--orange); }
+    .muted { color:#718096; font-size:12px; }
+    .radar { height:200px; border-radius:12px; margin-top:18px;
+             background:
+               repeating-radial-gradient(circle at 50% 50%, #234 0 1px, transparent 1px 28px),
+               radial-gradient(circle at 50% 50%, #0f1b2d, #0a1320);
+             border:1px solid #3a4357; position:relative; overflow:hidden; }
+    .blip { position:absolute; width:10px; height:10px; border-radius:50%;
+            background:var(--orange); box-shadow:0 0 12px var(--orange); }
+    footer { margin-top:30px; padding:16px 28px; color:#718096; font-size:12px;
+             border-top:1px solid #2d3748; }
+    .changelog { margin-top:6px; color:#a0aec0; }
+    .changelog b { color:#f6ad55; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="ball"></div>
+    <h1>Dragon Radar Dashboard</h1>
+    <div class="who">Signed in as <b>{{ user }}</b> ({{ role }})</div>
+  </header>
+  <main>
+    <div class="grid">
+      <div class="panel"><h2>DRAGON BALLS DETECTED</h2><div class="big">7</div>
+        <div class="muted">across all known sectors</div></div>
+      <div class="panel"><h2>RADAR RANGE</h2><div class="big">4000 km</div>
+        <div class="muted">West City relay</div></div>
+      <div class="panel"><h2>SIGNAL INTEGRITY</h2><div class="big">98%</div>
+        <div class="muted">nominal</div></div>
+    </div>
+    <div class="radar">
+      <div class="blip" style="left:22%; top:30%"></div>
+      <div class="blip" style="left:64%; top:48%"></div>
+      <div class="blip" style="left:40%; top:70%"></div>
+      <div class="blip" style="left:78%; top:22%"></div>
+    </div>
+  </main>
+  <footer>
+    Dragon Radar Dashboard v{{ app_version }} &mdash; build {{ build_date }} &middot;
+    &copy; Capsule Corporation
+    <div class="changelog">
+      Changelog: v{{ fixed_version }} (<b>{{ paradox_date }}</b>) &mdash;
+      &ldquo;Patched insecure <code>radar_session</code> deserialization.&rdquo;
+      &nbsp;[update scheduled &mdash; how is this dated after today?]
+    </div>
+  </footer>
+</body>
+</html>
