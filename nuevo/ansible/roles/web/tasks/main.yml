@@ -140,6 +140,14 @@
     - { path: "{{ capsule_data }}/tmp/.radarcache", owner: www-data, group: www-data, mode: "0755" }
 
 # ---- Database ----------------------------------------------------------------
+- name: Deploy init_db.py seeder (it lives beside the app tree, not inside it)
+  ansible.builtin.copy:
+    src: init_db.py
+    dest: "{{ app_root }}/init_db.py"
+    owner: capsule
+    group: capsule
+    mode: "0644"
+
 - name: Seed SQLite database (as capsule)
   become_user: capsule
   ansible.builtin.command:
