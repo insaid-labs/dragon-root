@@ -46,7 +46,7 @@ system_users:
     uid: 1001
     comment: "Field Tester"
     shell: /bin/bash
-    password: "Kakar0t_SSH_2015!"
+    password: "chichi"
     extra_groups: []
   - name: bulma
     uid: 1002
@@ -66,20 +66,45 @@ pop3_pass: "dragon"
 
 # SSH creds for goku (looted from config.py after web RCE)
 ssh_loot_user: "goku"
-ssh_loot_pass: "Kakar0t_SSH_2015!"
+ssh_loot_pass: "chichi"
 app_secret_key: "kamehameha2015"
 
 # ---- Flags ------------------------------------------------------------------
 flag_ball_1: "CAPSULE{0n3_st4r_ftp_4n0nym0us}"
 flag_ball_2: "CAPSULE{tw0_st4rs_p0p3_m41lb0x}"
 flag_ball_3: "CAPSULE{thr33_st4rs_w3b_d3s3r14l}"
-flag_ball_4: "CAPSULE{f0ur_st4rs_h1dd3n_c0nf1g}"
+flag_ball_4: "CAPSULE{f0ur_st4rs_fr33d_fr0m_fr13z4}"
 flag_ball_5: "CAPSULE{f1v3_st4rs_g0ku_h0m3}"
 flag_ball_6: "CAPSULE{s1x_st4rs_sud0_w1ldc4rd}"
 flag_ball_7: "CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}"
-flag_user:   "HTB{us3r_g0ku_p0w3r_l3v3l_9000}"
-flag_root:   "HTB{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}"
-flag_bonus:  "HTB{t1m3_p4r4d0x_4ll_b4lls}"
+# ---- Ball #7 "Shenlong altar" Burp challenge --------------------------------
+# The 7-star flag and the bonus are encrypted at build with the root-only
+# "Seal of Ki" (altar_sigil). The web app (running as www-data) only ever holds
+# the ciphertext, so a www-data attacker cannot read them: the player must be
+# root to recover the sigil, and must tamper the summon request (Burp Repeater)
+# to satisfy planet=earth / kami_sama=alive / ki>9000 before the seal is lifted.
+altar_sigil: "k4m3h4m3h4-s3ll0-d3l-k1-2015"
+
+# ---- Ball #5 "Gravity Chamber" (internal web service, SSH-tunnel challenge) --
+# Served only on 127.0.0.1:{{ gravity_port }} by a service running as `capsule`,
+# so goku must tunnel in and "train" at gravity_target to release the flag.
+gravity_port: 8081
+gravity_target: 100
+
+flag_user:   "THM{us3r_g0ku_p0w3r_l3v3l_9000}"
+flag_root:   "THM{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}"
+flag_bonus:  "THM{t1m3_p4r4d0x_4ll_b4lls}"
+
+# ---- Ball #4 "captured" challenge -------------------------------------------
+# Lore: Frieza's soldiers found the same web RCE first and sealed ball #4 with
+# a toy "ransomware" (friezacrypt). It is just AES-256-CBC with a leaked key —
+# the player recovers the key from the in-box "No More Capsule" portal
+# (/recovery) and decrypts it, mirroring the real nomoreransom.org workflow.
+# NOTE: ball4_decrypt_key must stay in sync with the mapping hardcoded in
+# roles/web/files/capsule/app/templates/recovery.html.
+ball4_cipher_ext: "friezacrypt"
+ball4_cipher_family: "FriezaLocker"
+ball4_decrypt_key: "g1nyu-f0rc3-l34k3d"
 
 # ---- Paths ------------------------------------------------------------------
 app_root: /var/www/capsule

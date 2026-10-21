@@ -13,14 +13,65 @@
     group: www-data
     mode: "0644"
 
-# ---- Ball #4: hidden radar cache (www-data) ----------------------------------
-- name: Dragon ball 4 (hidden config cache)
-  ansible.builtin.copy:
-    content: "{{ flag_ball_4 }}\n"
-    dest: "{{ capsule_data }}/tmp/.radarcache/dragon_ball_4.txt"
+# ---- Ball #4: "captured" by Frieza's soldiers (friezacrypt / AES-256-CBC) -----
+# Lore: they abused the same web RCE first and sealed ball #4. The plaintext
+# flag never lands on disk — only the encrypted blob + a ransom note do. The
+# player recovers the leaked key from the /recovery portal and decrypts it.
+- name: Dragon ball 4 — seal the flag with friezacrypt (AES-256-CBC + pbkdf2)
+  ansible.builtin.shell:
+    cmd: >-
+      printf '%s\n' '{{ flag_ball_4 }}'
+      | openssl enc -aes-256-cbc -pbkdf2 -salt -k '{{ ball4_decrypt_key }}'
+      -out '{{ capsule_data }}/tmp/.radarcache/dragon_ball_4.{{ ball4_cipher_ext }}'
+    creates: "{{ capsule_data }}/tmp/.radarcache/dragon_ball_4.{{ ball4_cipher_ext }}"
+  no_log: true
+
+- name: Dragon ball 4 — perms on the sealed blob (www-data readable)
+  ansible.builtin.file:
+    path: "{{ capsule_data }}/tmp/.radarcache/dragon_ball_4.{{ ball4_cipher_ext }}"
     owner: www-data
     group: www-data
     mode: "0644"
+
+- name: Dragon ball 4 — drop Frieza's ransom note next to the sealed ball
+  ansible.builtin.copy:
+    dest: "{{ capsule_data }}/tmp/.radarcache/LEEME_RESCATE.txt"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    content: |
+      ===============  FUERZAS ESPECIALES GINYU  -  COMUNICADO OFICIAL  ===============
+
+                       "De parte de Lord Freezer. Con desprecio."
+
+      Vaya, vaya... asi que encontraste la CVE-2024-42069 y abriste la puerta.
+      No esta nada mal para un simple Saiyan.
+
+      Pero de verdad creiste que serias el UNICO en darte cuenta de ese agujero?
+      Nosotros lo encontramos primero. Fuimos mas rapidos. Y mientras tu apenas
+      llegabas arrastrandote, nosotros ya nos habiamos llevado la Esfera de 4
+      Estrellas de este radar.
+
+      Ahora pertenece a Lord Freezer. La dejamos sellada aqui mismo, en este
+      radar, para que puedas verla y sufrir sin poder abrirla jamas.
+
+      Pero somos gente de negocios. Por solo 100.000.000 de zenis, esta esfera
+      podria volver a tus manos. Transfiere el pago y te enviaremos la clave de
+      descifrado. Palabra de las Fuerzas Ginyu.
+
+      ...
+
+      ...jajaja. Es broma. JAMAS traicionariamos a Lord Freezer por dinero. La
+      clave ya no existe. Esa esfera esta perdida para siempre, insecto.
+
+      Ah, y ni acudas a buscar ayuda en esos pateticos portales gratuitos que
+      monta la division de I+D de Capsule Corp para los llorones que no quieren
+      pagar rescate.
+
+      No te servira de NADA. Nadie regala descifradores en este universo. Nadie.
+
+                                              -- Fuerzas Especiales Ginyu
+                                                 Al servicio de Lord Freezer
 
 # ---- goku home: user flag + ball #5 + ssh key --------------------------------
 - name: goku training dirs
@@ -34,14 +85,9 @@
     - /home/goku/training
     - /home/goku/training/memories
 
-- name: Dragon ball 5 (goku home)
-  ansible.builtin.copy:
-    content: "{{ flag_ball_5 }}\n"
-    dest: /home/goku/training/memories/dragon_ball_5.txt
-    owner: goku
-    group: goku
-    mode: "0640"
-
+# Ball #5 is no longer a plaintext file in goku's home: it lives inside the
+# internal Gravity Chamber service (role: gravity) and is released only after
+# tunneling in and training at 100x. goku gets a hint note there instead.
 - name: user.txt
   ansible.builtin.copy:
     content: "{{ flag_user }}\n"

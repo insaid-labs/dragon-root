@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Altar de Shenlong — Capsule Corp</title>
+  <!--
+       The summon (planet=earth, kami_sama=alive, ki>9000) is validated
+       SERVER-SIDE at POST /altar/summon. The 7-star flag is encrypted with the
+       root-only "Seal of Ki" and only decrypted on a valid sigil, so it is NOT
+       in this page source. Collected balls come from GET /altar/status.
+       GIF slot (optional): static/altar/over9000.gif — else the SVG scene plays.
+       Everything is inline SVG/CSS (no external libs: the box runs offline).
+  -->
+  <style>
+    :root{
+      --orange:#ed8936; --amber:#ffcf6b; --bg:#05060a; --card:#12131b;
+      --line:#2b3242; --ink:#e8e2d4; --dim:#8a93a6;
+      --scouter:#6bff6b; --alert:#ff3b3b; --wish:#ffe08a; --crystal:#ff8a1f;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;min-height:100%;}
+    body{
+      font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink);
+      background:radial-gradient(1200px 760px at 50% -5%, #1a1205, #05060a 70%);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:26px 16px; overflow-x:hidden; transition:background 1.4s ease;
+    }
+    body.storm{background:radial-gradient(1200px 900px at 50% 10%, #0b1016, #000 72%);}
+    .stage{position:relative; z-index:1; width:100%; max-width:560px; text-align:center;}
+
+    /* ===== scouter device ===== */
+    .scouterDev{width:260px; max-width:82%; margin:0 auto 20px; display:block;
+      filter:drop-shadow(0 8px 20px #000a); transition:filter .3s;}
+    .scouterDev.alert{filter:drop-shadow(0 0 18px #ff3b3b88); animation:shake .09s linear 9;}
+    #sc-num{font-family:ui-monospace,monospace; font-weight:800; fill:var(--scouter);
+      font-size:30px; letter-spacing:1px;}
+    #sc-lbl{font-family:ui-monospace,monospace; fill:var(--scouter); font-size:8px; letter-spacing:3px; opacity:.85;}
+    .scouterDev.alert #sc-num{fill:#fff;}
+    .scouterDev.alert #sc-lbl{fill:#ffd2d2;}
+    @keyframes shake{0%,100%{transform:translate(0,0);}25%{transform:translate(-2px,1px);}
+      50%{transform:translate(2px,-1px);}75%{transform:translate(-1px,-1px);}}
+
+    /* ===== ritual panel ===== */
+    .ritual{background:linear-gradient(180deg,var(--card),#0a0b12);
+      border:1px solid var(--line); border-radius:16px; padding:24px 24px 22px;
+      box-shadow:0 24px 70px rgba(0,0,0,.6);}
+    .ritual h1{margin:0 0 6px;font-size:21px;letter-spacing:.02em;}
+    .ritual .flavor{color:var(--dim);font-size:13.5px;line-height:1.7;margin:0 auto 18px;max-width:430px;}
+    #summon{border:0;border-radius:10px;padding:12px 24px;cursor:pointer;font-size:15px;font-weight:700;
+      background:linear-gradient(180deg,var(--amber),var(--orange));color:#5c2708;box-shadow:0 8px 24px #ed893633;}
+    #summon:hover{filter:brightness(1.08);} #summon:disabled{opacity:.6;cursor:default;}
+    .status{margin-top:16px;text-align:left;}
+    .status .sleep{display:flex;gap:8px;justify-content:center;color:var(--dim);
+      font-size:13px;margin-bottom:8px;}
+    .reason{background:#1b0f0f;border:1px solid #4a1f1f;border-left:3px solid var(--alert);
+      border-radius:9px;padding:9px 12px;margin:8px 0;font-size:13px;line-height:1.6;color:#f3d6d6;}
+
+    /* ===== shout ===== */
+    .shout{font-size:clamp(26px,6.5vw,48px); font-weight:900; color:var(--alert);
+      text-shadow:0 0 22px #ff3b3b66, 3px 3px 0 #2a0000; margin:4px 0 2px; opacity:0; transform:scale(.4);}
+    .shout.hit{animation:slam .5s cubic-bezier(.2,1.4,.3,1) forwards;}
+    .sub-shout{color:var(--amber); font-size:14px; letter-spacing:.14em; text-transform:uppercase;
+      opacity:0; transition:opacity .6s ease .3s;}
+    .sub-shout.show{opacity:.9;}
+    @keyframes slam{0%{opacity:0;transform:scale(2.4) rotate(-4deg);}
+      60%{opacity:1;transform:scale(.92) rotate(1deg);}100%{opacity:1;transform:scale(1);}}
+
+    .gifwrap{margin:14px auto 0; max-width:320px;}
+    .gifwrap img{width:100%; border-radius:12px; border:1px solid var(--line); box-shadow:0 10px 40px #000a; display:block;}
+
+    /* ===== scene (dragon + balls) ===== */
+    .scene{position:relative; width:100%; height:330px; margin-top:6px;}
+    .dragonSvg{position:absolute; left:50%; bottom:56px; width:min(560px,99%); height:auto;
+      transform:translateX(-50%) translateY(36px) scale(.45); transform-origin:50% 90%;
+      opacity:0; transition:opacity 1.1s ease, transform 1.5s cubic-bezier(.2,.9,.25,1);
+      pointer-events:none; filter:drop-shadow(0 0 22px #2bff6b55);}
+    .dragonSvg.rise{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
+    .dragonImg{position:absolute; left:50%; bottom:50px; width:min(440px,88%); height:auto;
+      transform:translateX(-50%) translateY(36px) scale(.5); transform-origin:50% 92%;
+      opacity:0; transition:opacity 1.1s ease, transform 1.5s cubic-bezier(.2,.9,.25,1);
+      pointer-events:none; filter:drop-shadow(0 0 26px #2bff6b66); display:none;}
+    .dragonImg.rise{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
+    .balls{position:absolute; left:0; right:0; bottom:4px; display:flex;
+      flex-direction:column; align-items:center;}
+    .ballRow{display:flex; gap:4px; justify-content:center;}
+    .ballPos{line-height:0; transition:opacity .5s, filter .5s;}
+    .ballsCount{position:absolute; left:0; right:0; bottom:-6px; text-align:center;
+      font-family:ui-monospace,monospace; font-size:12px; letter-spacing:.14em; color:var(--amber); opacity:.85;}
+    .awaken{margin-top:4px; color:var(--scouter); letter-spacing:.26em; font-size:12px;
+      text-transform:uppercase; opacity:0; transition:opacity 1s ease .5s;}
+    .awaken.show{opacity:.85;}
+
+    .flag{margin:16px auto 0; max-width:470px; padding:15px 18px; border-radius:12px;
+      background:linear-gradient(180deg,#171206,#0d0a04); border:1px solid #4a3a12;
+      box-shadow:0 0 30px #ffd16633; opacity:0; transform:translateY(14px);
+      transition:opacity .9s ease, transform .9s ease;}
+    .flag.show{opacity:1; transform:translateY(0);}
+    .flag .t{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--orange);}
+    .flag code{display:block; margin-top:7px; font-family:ui-monospace,monospace; font-size:17px;
+      color:var(--wish); word-break:break-all;}
+    .flag .bonus{margin-top:12px;padding-top:10px;border-top:1px dashed #4a3a12;}
+    .flag .bonus .t{color:var(--amber);}
+    .replay{margin-top:22px; background:#141821; border:1px solid var(--line); color:var(--dim);
+      border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer;}
+    .replay:hover{color:var(--ink); border-color:var(--orange);}
+  </style>
+</head>
+<body>
+  <div class="stage">
+
+    <!-- ===================== SCOUTER (always on top) ===================== -->
+    <svg class="scouterDev" id="scouterDev" viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="earGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f3eee2"/><stop offset="1" stop-color="#cfc8b8"/>
+        </linearGradient>
+        <linearGradient id="lensGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff6a6a"/><stop offset=".5" stop-color="#d81f1f"/>
+          <stop offset="1" stop-color="#7a0e0e"/>
+        </linearGradient>
+      </defs>
+      <!-- ear hook / body (right side) -->
+      <path d="M196 20 C 240 20 252 50 246 78 C 240 108 212 120 190 116
+               C 214 96 216 48 196 20 Z" fill="url(#earGrad)" stroke="#b7ad99" stroke-width="2"/>
+      <rect x="150" y="52" width="54" height="30" rx="6" fill="url(#earGrad)" stroke="#b7ad99" stroke-width="2"/>
+      <circle cx="196" cy="67" r="7" fill="#c23b3b"/>
+      <!-- red crystal lens (angular) -->
+      <g>
+        <polygon points="18,30 150,22 176,66 150,110 18,102 6,66"
+                 fill="url(#lensGrad)" stroke="#5a0a0a" stroke-width="3"/>
+        <!-- inner HUD plate -->
+        <polygon points="28,40 138,34 158,66 138,98 28,92 20,66" fill="#2a0606" opacity=".55"/>
+        <!-- HUD text -->
+        <text id="sc-lbl" x="34" y="52">POWER LEVEL</text>
+        <text id="sc-num" x="34" y="84">0000</text>
+        <!-- little triangle marks -->
+        <polygon points="128,44 140,50 128,56" fill="#ffd34d" opacity=".85"/>
+        <polygon points="128,78 140,84 128,90" fill="#ffd34d" opacity=".7"/>
+        <!-- glass specular -->
+        <polygon points="20,34 70,30 56,56 16,60" fill="#ffffff" opacity=".18"/>
+      </g>
+    </svg>
+
+    <!-- ===================== RITUAL PANEL ===================== -->
+    <div class="ritual" id="ritual">
+      <h1 id="r-title">Altar de Shenlong</h1>
+      <p class="flavor" id="r-flavor">
+        Las siete Esferas del Dragón laten ante el altar. Pronuncia el ritual de
+        invocación y despierta al dragón eterno... si eres digno.
+      </p>
+      <button id="summon">⟡ Iniciar invocación</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- ===================== SHOUT ===================== -->
+    <div style="display:none" id="shoutZone">
+      <div class="shout" id="shout">¿¡QUÉ!? ¡ES MÁS DE 9000!</div>
+      <div class="sub-shout" id="subshout">El rastreador no miente... Shenlong responde.</div>
+    </div>
+
+    <div class="gifwrap" id="gifwrap" style="display:none"><img id="vegeta" alt=""></div>
+
+    <!-- ===================== SCENE: dragon + 7 crystal balls ===================== -->
+    <div class="scene" id="scene">
+      <svg class="dragonSvg" id="dragonSvg" viewBox="0 0 560 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5ec973"/><stop offset=".55" stop-color="#2f8f44"/>
+            <stop offset="1" stop-color="#174d25"/>
+          </linearGradient>
+          <linearGradient id="bellyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffe8a8"/><stop offset="1" stop-color="#e5a93f"/>
+          </linearGradient>
+        </defs>
+
+        <!-- ===== BODY: long horizontal serpent, right hump + left dip, tail coiling to center ===== -->
+        <path fill="none" stroke="url(#bodyGrad)" stroke-width="36" stroke-linecap="round"
+              d="M268 132 C 360 120 452 150 452 205 C 452 252 372 262 300 250
+                 C 214 236 156 196 120 214 C 92 228 108 262 156 262 C 210 262 246 256 268 250"/>
+        <path fill="none" stroke="url(#bellyGrad)" stroke-width="14" stroke-linecap="round" opacity=".9"
+              d="M268 132 C 360 120 452 150 452 205 C 452 252 372 262 300 250
+                 C 214 236 156 196 120 214 C 92 228 108 262 156 262 C 210 262 246 256 268 250"/>
+        <!-- tail coil over the ball pile -->
+        <path fill="none" stroke="url(#bodyGrad)" stroke-width="28" stroke-linecap="round"
+              d="M268 250 C 318 244 324 286 280 286 C 248 286 252 256 280 260"/>
+        <!-- dorsal spikes -->
+        <g fill="#174d25">
+          <path d="M330 118 l8 -18 l9 17 z"/><path d="M372 124 l8 -18 l9 18 z"/>
+          <path d="M414 140 l6 -18 l10 16 z"/><path d="M446 174 l2 -18 l12 13 z"/>
+        </g>
+
+        <!-- ===== HEAD: front-facing ===== -->
+        <g transform="translate(250,118)">
+          <g fill="#174d25">
+            <path d="M-40 -20 l-22 -6 l12 20 z"/><path d="M40 -20 l22 -6 l-12 20 z"/>
+            <path d="M-26 -36 l-8 -22 l20 12 z"/><path d="M26 -36 l8 -22 l-20 12 z"/>
+          </g>
+          <path d="M-18 -30 C -30 -54 -46 -58 -54 -84 M-40 -62 C -48 -66 -56 -64 -62 -72"
+                fill="none" stroke="#8a5f2c" stroke-width="7" stroke-linecap="round"/>
+          <path d="M18 -30 C 30 -54 46 -58 54 -84 M40 -62 C 48 -66 56 -64 62 -72"
+                fill="none" stroke="#8a5f2c" stroke-width="7" stroke-linecap="round"/>
+          <path d="M-38 -14 C -46 -44 46 -44 38 -14 C 34 4 24 18 14 26 C 6 32 -6 32 -14 26 C -24 18 -34 4 -38 -14 Z"
+                fill="url(#bodyGrad)" stroke="#123f1f" stroke-width="2.5"/>
+          <path d="M-30 2 C -24 8 -16 10 -10 8" fill="none" stroke="#123f1f" stroke-width="2" opacity=".6"/>
+          <path d="M30 2 C 24 8 16 10 10 8" fill="none" stroke="#123f1f" stroke-width="2" opacity=".6"/>
+          <path d="M-30 -18 C -22 -27 -8 -24 -5 -14" fill="none" stroke="#123f1f" stroke-width="4"/>
+          <path d="M30 -18 C 22 -27 8 -24 5 -14" fill="none" stroke="#123f1f" stroke-width="4"/>
+          <ellipse cx="-17" cy="-8" rx="8.5" ry="7" fill="#ff2b2b"/>
+          <ellipse cx="17" cy="-8" rx="8.5" ry="7" fill="#ff2b2b"/>
+          <circle cx="-14" cy="-10" r="2.3" fill="#fff"/><circle cx="20" cy="-10" r="2.3" fill="#fff"/>
+          <path d="M-10 14 C -4 20 4 20 10 14" fill="none" stroke="#123f1f" stroke-width="2.5"/>
+          <circle cx="-6" cy="13" r="2.2" fill="#0e3418"/><circle cx="6" cy="13" r="2.2" fill="#0e3418"/>
+          <path d="M-7 23 l-3 7 l5 -3 z" fill="#fff"/><path d="M7 23 l3 7 l-5 -3 z" fill="#fff"/>
+          <path d="M-10 16 C -70 30 -150 20 -210 56" fill="none" stroke="#3a9f4e" stroke-width="4.5" stroke-linecap="round" opacity=".95"/>
+          <path d="M10 16 C 70 30 150 20 210 56" fill="none" stroke="#3a9f4e" stroke-width="4.5" stroke-linecap="round" opacity=".95"/>
+          <path d="M-9 22 C -55 40 -95 42 -140 78" fill="none" stroke="#2f8f44" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+          <path d="M9 22 C 55 40 95 42 140 78" fill="none" stroke="#2f8f44" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+        </g>
+      </svg>
+      <img class="dragonImg" id="shenlongImg" alt="">    <!-- optional: static/altar/shenlong.png rises instead of the SVG -->
+
+      <div class="balls" id="balls"></div>
+      <div class="ballsCount" id="ballsCount"></div>
+    </div>
+
+    <div class="awaken" id="awaken">～ S H E N L O N G   D E S P I E R T A ～</div>
+
+    <div class="flag" id="flag" style="display:none">
+      <div class="t">⭐ Esfera de 7 Estrellas · liberada</div>
+      <code id="flagcode"></code>
+      <div class="bonus" id="bonusbox" style="display:none">
+        <div class="t">🐉 Deseo concedido</div>
+        <code id="bonuscode"></code>
+      </div>
+    </div>
+
+    <button class="replay" id="replay" style="display:none">▶ repetir invocación</button>
+  </div>
+
+  <script>
+    const LANG = (document.documentElement.lang || "es").slice(0,2);
+    const I18N = {
+      es:{title:"Altar de Shenlong",
+        flavor:"Las siete Esferas del Dragón laten ante el altar. Pronuncia el ritual de invocación y despierta al dragón eterno... si eres digno.",
+        summon:"⟡ Iniciar invocación", summoning:"Invocando...",
+        sleep:"Shenlong duerme. El ritual no fue aceptado:",
+        power:"POWER LEVEL", scanning:"SCANNING...",
+        shout:"¿¡QUÉ!? ¡ES MÁS DE 9000!", sub:"El rastreador no miente... Shenlong responde.",
+        awaken:"～ S H E N L O N G   D E S P I E R T A ～",
+        balls:(n)=>"Esferas reunidas: "+n+" / 7", replay:"▶ repetir invocación"},
+      en:{title:"Shenlong's Altar",
+        flavor:"The seven Dragon Balls pulse before the altar. Speak the summoning ritual and awaken the eternal dragon... if you are worthy.",
+        summon:"⟡ Begin the summon", summoning:"Summoning...",
+        sleep:"Shenlong sleeps. The ritual was not accepted:",
+        power:"POWER LEVEL", scanning:"SCANNING...",
+        shout:"WHAT?! IT'S OVER 9000!", sub:"The scouter doesn't lie... Shenlong answers.",
+        awaken:"～ S H E N L O N G   A W A K E N S ～",
+        balls:(n)=>"Balls gathered: "+n+" / 7", replay:"▶ replay the summon"}
+    };
+    const T = I18N[LANG] || I18N.es;
+    const $ = (id)=>document.getElementById(id);
+    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+    const esc=(s)=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    // Demo mode whenever there is no real server (file:, data:, blob: previews).
+    const FILE = !/^https?:$/.test(location.protocol);
+
+    // ---- build a 5-point star path ----
+    function starPath(cx,cy,r){
+      let d=""; for(let i=0;i<10;i++){const rr=i%2?r*0.42:r;
+        const a=(-90+i*36)*Math.PI/180; const x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a);
+        d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1);} return d+"Z";
+    }
+    // star layouts per ball number
+    const LAYOUT={
+      1:[[0,0]], 2:[[-10,-7],[10,7]], 3:[[0,-12],[-11,8],[11,8]],
+      4:[[-10,-10],[10,-10],[-10,10],[10,10]],
+      5:[[-11,-11],[11,-11],[0,0],[-11,11],[11,11]],
+      6:[[-12,-9],[0,-9],[12,-9],[-12,9],[0,9],[12,9]],
+      7:[[0,-14],[-11,-5],[11,-5],[0,-1],[-12,11],[0,12],[12,11]]
+    };
+    function ballSVG(n,size){
+      const r=size/2, cx=r, cy=r, sr=size*0.072;
+      let stars=""; for(const [dx,dy] of LAYOUT[n])
+        stars+='<path d="'+starPath(cx+dx*(size/58),cy+dy*(size/58),sr)+'" fill="#9c1a10" opacity=".92"/>';
+      return '<svg class="ball" data-n="'+n+'" viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'">'
+        +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r-1)+'" fill="url(#bg'+n+')"/>'
+        +'<ellipse cx="'+(cx-r*0.32)+'" cy="'+(cy-r*0.36)+'" rx="'+(r*0.34)+'" ry="'+(r*0.22)+'" fill="#fff" opacity=".5"/>'
+        +stars
+        +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r-1)+'" fill="none" stroke="#b25a12" stroke-width="1" opacity=".5"/>'
+        +'</svg>';
+    }
+    // gradient defs for balls (one per n so lit/dim differ via CSS filter)
+    function ballDefs(){
+      let g='<svg width="0" height="0"><defs>';
+      for(let n=1;n<=7;n++)
+        g+='<radialGradient id="bg'+n+'" cx="38%" cy="32%" r="72%">'
+          +'<stop offset="0" stop-color="#fff2c2"/><stop offset="38%" stop-color="#ff9d2a"/>'
+          +'<stop offset="100%" stop-color="#c85a08"/></radialGradient>';
+      return g+'</defs></svg>';
+    }
+
+    // pile = 2-3-2 pyramid; flex rows auto-center and nest with a negative top margin
+    const SIZE=56;
+    function layoutBalls(present){
+      const rows=[[1,2],[3,4,5],[6,7]];     // star-numbers per row (top -> bottom)
+      let html=ballDefs();
+      rows.forEach((row,ri)=>{
+        html+='<div class="ballRow" style="margin-top:'+(ri?(-Math.round(SIZE*0.34))+'px':'0')+'">';
+        row.forEach(n=>{
+          const lit=present.includes(n);
+          html+='<div class="ballPos" data-n="'+n+'" style="opacity:'+(lit?1:0.28)
+            +';filter:'+(lit?'drop-shadow(0 0 10px #ff9d2abb)':'grayscale(.4)')+'">'
+            +ballSVG(n,SIZE)+'</div>';
+        });
+        html+='</div>';
+      });
+      $("balls").innerHTML=html;
+    }
+
+    const vg=$("vegeta");
+    vg.onload =()=>{$("gifwrap").style.display="block";};
+    vg.onerror=()=>{$("gifwrap").style.display="none";};
+
+    // optional real Shenlong image (static/altar/shenlong.png): if present it
+    // rises instead of the inline SVG; otherwise the SVG dragon is used.
+    const shimg=$("shenlongImg"); let useImg=false;
+    shimg.onload =()=>{useImg=true; shimg.style.display="block"; $("dragonSvg").style.display="none";};
+    shimg.onerror=()=>{useImg=false; shimg.style.display="none"; $("dragonSvg").style.display="";};
+    shimg.src="/static/altar/shenlong.png";
+    const dragonEl=()=> useImg ? shimg : $("dragonSvg");
+
+    function applyLang(){
+      $("r-title").textContent=T.title; $("r-flavor").textContent=T.flavor;
+      $("summon").textContent=T.summon; $("shout").textContent=T.shout;
+      $("subshout").textContent=T.sub; $("awaken").textContent=T.awaken; $("replay").textContent=T.replay;
+      $("sc-lbl").textContent=T.power;
+    }
+
+    async function loadStatus(){
+      let present=[0], collected=0;
+      if(FILE){ present=[1,2,3,4,5,6,7]; collected=7; }    // demo in preview
+      else{
+        try{ const r=await fetch("/altar/status"); const d=await r.json();
+          present=d.present||[]; collected=d.collected||present.length; }
+        catch(e){ present=[]; collected=0; }
+      }
+      layoutBalls(present);
+      $("ballsCount").textContent=T.balls(collected);
+      return collected;
+    }
+
+    function baselineBody(){
+      return new URLSearchParams({invoker:"goku",planet:"namek",kami_sama:"dead",ki:"9000",sigil:""}).toString();
+    }
+
+    let demoStep=0;
+    async function summon(){
+      $("summon").disabled=true; $("summon").textContent=T.summoning; $("status").innerHTML="";
+      let data;
+      if(FILE){                                   // preview: 1st click denied, 2nd grants
+        demoStep++;
+        data = demoStep===1
+          ? {status:"denied",reasons:[
+              "Invocas desde Namek. Las Esferas de la Tierra solo despiertan a Shenlong en la TIERRA; aqui responde Porunga.",
+              "Kami-sama, guardian de las esferas, ha muerto. Sin el, son simples piedras. Revivelo.",
+              "Tu ki es 9000. Shenlong solo despierta ante quien SUPERA los 9000."]}
+          : {status:"granted",ball7:"THM{s3v3n_st4rs_w1sh_gr4nt3d}",bonus:"THM{t1m3_p4r4d0x_4ll_b4lls}"};
+      }else{
+        try{ const res=await fetch("/altar/summon",{method:"POST",
+          headers:{"Content-Type":"application/x-www-form-urlencoded"},body:baselineBody()});
+          data=await res.json(); }
+        catch(e){ data={status:"denied",reasons:["El altar no responde (sin conexion al servidor)."]}; }
+      }
+      $("summon").disabled=false; $("summon").textContent=T.summon;
+
+      if(data.status==="granted"){ $("ritual").style.display="none"; reveal(data.ball7,data.bonus); }
+      else{
+        const rs=(data.reasons||[]).map(r=>'<div class="reason">'+esc(r)+'</div>').join("");
+        $("status").innerHTML='<div class="sleep">💤 '+esc(T.sleep)+'</div>'+rs;
+      }
+    }
+
+    async function reveal(ball7,bonus){
+      applyLang();
+      vg.src="/static/altar/over9000.gif";
+      $("shoutZone").style.display="block";
+      $("replay").style.display="inline-block";
+      ["shout","subshout","awaken"].forEach(id=>$(id).classList.remove("hit","show"));
+      $("dragonSvg").classList.remove("rise"); shimg.classList.remove("rise"); $("flag").classList.remove("show");
+      $("scouterDev").classList.remove("alert"); $("flag").style.display="none";
+      document.body.classList.remove("storm");
+
+      // scouter counts up to 9000, stalls
+      let v=6200; $("sc-lbl").textContent=T.scanning;
+      while(v<9000){ v+=Math.max(40,(9000-v)*0.14); if(v>9000)v=9000;
+        $("sc-num").textContent=Math.round(v); await sleep(26); }
+      $("sc-num").textContent="9000"; $("sc-lbl").textContent=T.power; await sleep(460);
+      for(let i=0;i<3;i++){ $("sc-num").textContent="89"+(90+i); await sleep(85);
+        $("sc-num").textContent="9000"; await sleep(85); }
+
+      // OVERLOAD
+      $("scouterDev").classList.add("alert"); $("sc-lbl").textContent="!! OVERLOAD !!";
+      let big=9001; for(let i=0;i<16;i++){ big+=Math.round(Math.random()*90000);
+        $("sc-num").textContent=big>99999?">9000":big; await sleep(45);} $("sc-num").textContent=">9000";
+
+      // shout + all balls flash, dragon rises from them
+      $("shout").classList.add("hit"); await sleep(240); $("subshout").classList.add("show");
+      $("balls").querySelectorAll(".ballPos").forEach(b=>{b.style.opacity=1;
+        b.style.filter="drop-shadow(0 0 16px #ffbe3bdd)";});
+      await sleep(400);
+      document.body.classList.add("storm");
+      dragonEl().classList.add("rise"); $("awaken").classList.add("show");
+      await sleep(1000);
+      $("flag").style.display="block"; $("flagcode").textContent=ball7||"THM{•••••••}";
+      if(bonus){ $("bonuscode").textContent=bonus; $("bonusbox").style.display="block"; }
+      requestAnimationFrame(()=>$("flag").classList.add("show"));
+    }
+
+    $("summon").addEventListener("click",summon);
+    $("replay").addEventListener("click",()=>reveal($("flagcode").textContent,$("bonuscode").textContent||null));
+    applyLang(); loadStatus();
+  </script>
+</body>
+</html>

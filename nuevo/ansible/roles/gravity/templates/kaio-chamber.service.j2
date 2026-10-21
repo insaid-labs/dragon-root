@@ -1,0 +1,14 @@
+[Unit]
+Description=Capsule Corp Gravity Chamber (internal training console, localhost only)
+After=network.target
+
+[Service]
+User=capsule
+Group=capsule
+ExecStart=/usr/bin/python3 /opt/kaio/chamber.py
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

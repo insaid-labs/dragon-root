@@ -25,10 +25,11 @@ DragonRoot/
 │       ├── base/                 # hostname, users, 2015 theming, SSH banner
 │       ├── ftp/                  # vsftpd anon + roster/diagram/readme/ball1
 │       ├── mail/                 # Dovecot POP3 + bulma mailbox (3 emails, ball2)
-│       ├── web/                  # Flask vuln app + SQLite + gunicorn + nginx
+│       ├── web/                  # Flask app (RCE) + /recovery portal + /altar + ball7/bonus seals
 │       ├── scheduler/            # systemd timer (benign processor)
-│       ├── flags/                # balls 3-5, user.txt, goku ssh, collection dir
-│       └── privesc/              # sudoers + radar-backup.sh + Shenlong + mtimes
+│       ├── flags/                # balls 3/4/6, user.txt, goku ssh, collection dir
+│       ├── gravity/              # internal Gravity Chamber (127.0.0.1:8081) -> ball 5
+│       └── privesc/              # sudoers + radar-backup.sh + Shenlong + Seal of Ki + mtimes
 ├── advisory/
 │   └── CVE-2024-42069.txt        # NVD-style security advisory
 ├── exploit/
@@ -78,10 +79,10 @@ are reproducible.
 | FTP | `anonymous` / (blank) |
 | POP3 | `bulma:dragon` |
 | Web dashboard | `goku:9000` (leaked via POP3) |
-| SSH | `goku:Kakar0t_SSH_2015!` (looted from `config.py`) |
-| User flag | `HTB{us3r_g0ku_p0w3r_l3v3l_9000}` |
-| Root flag | `HTB{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}` |
-| Bonus | `HTB{t1m3_p4r4d0x_4ll_b4lls}` |
+| SSH | `goku:chichi` (brute-forceable w/ rockyou; also looted from `config.py`) |
+| User flag | `THM{us3r_g0ku_p0w3r_l3v3l_9000}` |
+| Root flag | `THM{r00t_sh3nl0ng_gr4nts_y0ur_w1sh}` |
+| Bonus | `THM{t1m3_p4r4d0x_4ll_b4lls}` |
 
 All 7 `CAPSULE{...}` dragon-ball flags and their locations are in the writeup.
 
@@ -126,7 +127,10 @@ while keeping the 2015 story intact:
 - [x] PoC yields a reliable `www-data` reverse shell
 - [x] `config.py` readable by www-data; SSH as goku works
 - [x] `sudo -l` for goku shows only `radar-backup.sh *`; injection yields root
-- [x] All 7 dragon balls at exact paths/permissions; user.txt & root.txt exact
+- [x] Balls 1/3/4/6 at exact paths; ball 5 via Gravity Chamber (8081 tunnel); ball 7 via Burp altar ritual
+- [x] ball 4 sealed (friezacrypt) + /recovery portal returns the key
+- [x] Gravity Chamber on 127.0.0.1:8081 only (absent from external nmap); releases ball 5 at 100x
+- [x] /altar summon validates planet/kami_sama/ki + root-only Seal of Ki; ball 7 AES-sealed from www-data
 - [x] `invoke_shenlong.sh` grants bonus only with 7/7 balls collected
 - [x] No kernel exploit or hash cracking required (Medium)
 - [x] 3 non-blocking time-travel easter eggs present

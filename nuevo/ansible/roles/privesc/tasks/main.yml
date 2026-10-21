@@ -58,13 +58,46 @@
     - /opt/shenlong
     - /opt/shenlong/altar
 
-- name: Dragon ball 7 (Shenlong altar)
+# Ball #7 is no longer a plaintext file: it is sealed in the web altar and
+# unlocked only with this root-only Seal of Ki via the Burp summon ritual.
+- name: Seal of Ki (root-only; lifts the web altar's 7-star seal)
   ansible.builtin.copy:
-    content: "{{ flag_ball_7 }}\n"
-    dest: /opt/shenlong/altar/dragon_ball_7.txt
+    content: "{{ altar_sigil }}\n"
+    dest: /opt/shenlong/altar/ki_sigil
     owner: root
     group: root
-    mode: "0640"
+    mode: "0600"
+  no_log: true
+
+- name: Shenlong ritual scroll (root-only, in-box guidance)
+  ansible.builtin.copy:
+    dest: /opt/shenlong/altar/RITUAL.txt
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      ~~~~~~~~~~~~~~~~  PERGAMINO DEL ALTAR DE SHENLONG  ~~~~~~~~~~~~~~~~
+
+      Solo quien domina el santuario (tu, ahora que eres root) lee esto.
+
+      La Esfera de 7 Estrellas ya no descansa en piedra: fue sellada en
+      el Altar del Radar, que vive en la red de Capsule Corp:
+
+          http://{{ box_hostname }}/altar
+
+      Para despertar a Shenlong, el ritual exige TRES verdades y el
+      SELLO DEL KI que guardas en este santuario (archivo: ki_sigil):
+
+        - El dragon de la TIERRA solo responde en la Tierra.
+          (En Namek no despierta Shenlong, sino Porunga.)
+        - Kami-sama, guardian de las esferas, debe estar VIVO.
+          (Si ha muerto, las esferas son simples piedras.)
+        - Tu nivel de poder debe SUPERAR los 9000.
+
+      El altar escuchara tu peticion... pero no te la pondra facil:
+      tendras que corregir la ofrenda tu mismo antes de que ella llegue.
+
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ---- root.txt + bonus + the summon script -----------------------------------
 - name: root.txt
@@ -104,11 +137,13 @@
       /srv/ftp/dragon_ball_1.txt \
       /var/mail/bulma \
       /var/capsule/uploads/processed/dragon_ball_3.txt \
-      /var/capsule/tmp/.radarcache/dragon_ball_4.txt \
-      /home/goku/training/memories/dragon_ball_5.txt \
+      /var/capsule/tmp/.radarcache/dragon_ball_4.{{ ball4_cipher_ext }} \
+      /var/capsule/tmp/.radarcache/LEEME_RESCATE.txt \
+      /home/goku/training/memories/NOTA_camara.txt \
       /home/goku/user.txt \
       /root/.secrets/dragon_ball_6.txt \
-      /opt/shenlong/altar/dragon_ball_7.txt \
+      /opt/shenlong/altar/ki_sigil \
+      /opt/shenlong/altar/RITUAL.txt \
       /root/root.txt \
       /root/wish_granted.txt \
       /root/invoke_shenlong.sh \

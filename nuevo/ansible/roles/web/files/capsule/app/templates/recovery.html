@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No More Capsule — Recuperador de Esferas</title>
+  <!--
+       NOTE (lab maintainers): the friezacrypt free key below MUST match
+       group_vars/all.yml -> ball4_decrypt_key. This portal is the intended
+       way for players to recover the key for the "captured" dragon ball #4.
+  -->
+  <style>
+    :root{
+      --orange:#ed8936; --orange-bright:#ffb347; --amber:#ffcf6b;
+      --bg:#0d0f14; --bg2:#141821; --card:#181c26; --line:#2b3242;
+      --ink:#e8e2d4; --dim:#8a93a6; --green:#63e6a8; --red:#ff6b6b;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{
+      font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink);
+      background:
+        radial-gradient(1100px 560px at 50% -10%, #20160c 0%, transparent 60%),
+        radial-gradient(900px 500px at 10% 110%, #122029 0%, transparent 55%),
+        var(--bg);
+      min-height:100vh; display:flex; align-items:flex-start; justify-content:center;
+      padding:40px 16px;
+    }
+    .wrap{width:100%; max-width:680px;}
+    .brand{display:flex; align-items:center; gap:14px; margin-bottom:6px;}
+    .shield{
+      width:48px;height:48px;border-radius:12px; flex:0 0 auto;
+      background:radial-gradient(circle at 36% 30%, var(--amber), var(--orange) 60%, #9c4221 100%);
+      display:flex;align-items:center;justify-content:center;color:#7a2e0e;
+      font-weight:800;font-size:20px; box-shadow:0 0 20px #ed893655;
+    }
+    .brand h1{margin:0;font-size:20px;letter-spacing:.01em;}
+    .brand h1 span{color:var(--orange-bright);}
+    .tagline{color:var(--dim); font-size:13px; margin:2px 0 22px;}
+    .tagline b{color:#aeb7c7;}
+
+    .panel{
+      background:linear-gradient(180deg, var(--card), var(--bg2));
+      border:1px solid var(--line); border-radius:14px; padding:22px 22px 24px;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    label{display:block; font-size:13px; color:#cbd5e0; margin:0 0 8px;}
+    .lookup{display:flex; gap:10px;}
+    .lookup input{
+      flex:1; padding:12px 14px; border-radius:9px; border:1px solid #3a4357;
+      background:#0f131b; color:var(--ink); font-size:15px;
+      font-family:ui-monospace,monospace;
+    }
+    .lookup input::placeholder{color:#5c6577;}
+    .lookup button{
+      padding:12px 18px; border:0; border-radius:9px; cursor:pointer;
+      background:var(--orange); color:#1a202c; font-weight:700; font-size:14px;
+      white-space:nowrap;
+    }
+    .lookup button:hover{background:var(--orange-bright);}
+    .hint{font-size:12px; color:#5c6577; margin-top:10px;}
+
+    .result{margin-top:20px; display:none;}
+    .result.show{display:block;}
+    .badge{
+      display:inline-flex; align-items:center; gap:7px; font-size:12px;
+      font-weight:700; padding:5px 11px; border-radius:999px; letter-spacing:.03em;
+    }
+    .badge.ok{background:#12351f; color:var(--green); border:1px solid #1d5636;}
+    .badge.no{background:#3a1b1b; color:var(--red); border:1px solid #5a2a2a;}
+    .fam{margin:14px 0 4px; font-size:18px; font-weight:700;}
+    .meta{font-size:13px; color:var(--dim); line-height:1.7;}
+    .meta b{color:#cbd5e0;}
+
+    .keybox, .cmdbox{
+      margin-top:14px; background:#0b0e14; border:1px solid var(--line);
+      border-radius:10px; padding:12px 14px; position:relative;
+    }
+    .keybox .lbl, .cmdbox .lbl{
+      font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--orange); margin-bottom:7px;
+    }
+    .keybox code{font-family:ui-monospace,monospace; font-size:16px; color:var(--amber);}
+    .cmdbox pre{
+      margin:0; font-family:ui-monospace,monospace; font-size:13px; line-height:1.6;
+      color:#cfe8d8; white-space:pre-wrap; word-break:break-word;
+    }
+    .copy{
+      position:absolute; top:10px; right:10px; font-size:11px; cursor:pointer;
+      border:1px solid #3a4357; background:#161b25; color:var(--dim);
+      border-radius:6px; padding:4px 9px;
+    }
+    .copy:hover{color:var(--ink); border-color:var(--orange);}
+    .note{margin-top:14px; font-size:13px; color:var(--dim); line-height:1.6;}
+
+    .foot{margin-top:22px; text-align:center; font-size:11px; color:#4e5668;}
+    .foot a{color:#6b7790; text-decoration:none;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="shield">★</div>
+      <h1>No More <span>Capsule</span></h1>
+    </div>
+    <div class="tagline">
+      Proyecto de recuperación de Capsule Corp — <b>recupera tus esferas sin pagar rescate</b>.
+    </div>
+
+    <div class="panel">
+      <div class="lookup">
+        <input id="ext" autocomplete="off" autofocus>
+        <button id="go">Buscar descifrador</button>
+      </div>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <div class="foot">
+      Capsule Corp · División de Respuesta a Incidentes ·
+      inspirado en <a>nomoreransom.org</a>
+    </div>
+  </div>
+
+  <script>
+    // ---- Free-decryptor database (friezacrypt is the intended one) ----------
+    // KEEP 'key' IN SYNC WITH group_vars/all.yml -> ball4_decrypt_key
+    const DB = {
+      friezacrypt: {
+        family: "FriezaLocker",
+        free: true,
+        key: "g1nyu-f0rc3-l34k3d",
+        cipher: "AES-256-CBC (pbkdf2)",
+        blurb: "Cifrado débil con clave reutilizada. Clave de descifrado filtrada y publicada."
+      },
+      saibacrypt: { family: "Saibaman",  free: false },
+      celllock:   { family: "Cell-Lock", free: false },
+      majinlock:  { family: "MajinSeal", free: false }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const result = $("result");
+
+    function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+    function lookup(){
+      const raw = $("ext").value.trim();
+      const norm = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+      result.classList.add("show");
+      if (!norm){
+        result.innerHTML = '<span class="badge no">⚠ Introduce un valor para buscar</span>';
+        return;
+      }
+      // Match a known family whether the user types the bare family, ".family"
+      // or the whole filename; the matched key is what feeds the command.
+      const ext = Object.keys(DB).find(k => norm === k || norm.includes(k));
+      const hit = ext ? DB[ext] : null;
+      if (!hit){
+        result.innerHTML =
+          '<span class="badge no">✕ Sin coincidencias</span>' +
+          '<div class="note">No tenemos ningun descifrador que coincida con ' +
+          '<b>' + esc(raw) + '</b>.</div>';
+        return;
+      }
+      if (!hit.free){
+        result.innerHTML =
+          '<span class="badge no">✕ Sin descifrador gratuito</span>' +
+          '<div class="fam">' + esc(hit.family) + '</div>' +
+          '<div class="note">Esta familia aún no tiene descifrador público. ' +
+          'Seguimos analizando muestras — vuelve más tarde.</div>';
+        return;
+      }
+      const cmd =
+        "openssl enc -d -aes-256-cbc -pbkdf2 -k '" + hit.key + "' \\\n" +
+        "  -in dragon_ball_4." + ext + " -out dragon_ball_4.txt";
+      result.innerHTML =
+        '<span class="badge ok">✓ Descifrador GRATUITO disponible</span>' +
+        '<div class="fam">' + esc(hit.family) + '</div>' +
+        '<div class="meta"><b>Cifrado:</b> ' + esc(hit.cipher) + '<br>' +
+        esc(hit.blurb) + '</div>' +
+        '<div class="keybox"><div class="lbl">Clave de recuperación</div>' +
+        '<code>' + esc(hit.key) + '</code></div>' +
+        '<div class="cmdbox"><button class="copy" data-cmd="' + esc(cmd) + '">copiar</button>' +
+        '<div class="lbl">Comando para liberar la esfera</div>' +
+        '<pre>' + esc(cmd) + '</pre></div>' +
+        '<div class="note">Ejecuta el comando en el servidor donde está el archivo. ' +
+        'Al terminar tendrás <b>dragon_ball_4.txt</b> con la esfera liberada. 🐉</div>';
+    }
+
+    $("go").addEventListener("click", lookup);
+    $("ext").addEventListener("keydown", (e) => { if (e.key === "Enter") lookup(); });
+    result.addEventListener("click", (e) => {
+      if (e.target.classList.contains("copy")){
+        navigator.clipboard && navigator.clipboard.writeText(e.target.dataset.cmd);
+        e.target.textContent = "copiado ✓";
+        setTimeout(() => e.target.textContent = "copiar", 1400);
+      }
+    });
+  </script>
+</body>
+</html>

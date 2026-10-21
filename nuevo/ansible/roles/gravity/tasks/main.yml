@@ -1,0 +1,57 @@
+---
+# ============================================================================
+#  gravity — internal "Gravity Chamber" web console (127.0.0.1:8081), ball #5
+#  Reachable only after a goku shell + SSH local port-forward. Runs as the
+#  `capsule` service account so goku cannot read the script and grep the flag.
+# ============================================================================
+
+- name: Kaio training dir (readable only by the capsule service account)
+  ansible.builtin.file:
+    path: /opt/kaio
+    state: directory
+    owner: root
+    group: capsule
+    mode: "0750"
+
+- name: Deploy gravity chamber service (holds ball #5)
+  ansible.builtin.template:
+    src: chamber.py.j2
+    dest: /opt/kaio/chamber.py
+    owner: root
+    group: capsule
+    mode: "0640"
+  no_log: true
+  notify: restart kaio-chamber
+
+- name: Deploy gravity chamber systemd unit
+  ansible.builtin.template:
+    src: kaio-chamber.service.j2
+    dest: /etc/systemd/system/kaio-chamber.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart kaio-chamber
+
+- name: Enable + start the gravity chamber
+  ansible.builtin.systemd:
+    name: kaio-chamber
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: goku's training note hinting the internal chamber (ball #5 breadcrumb)
+  ansible.builtin.copy:
+    dest: /home/goku/training/memories/NOTA_camara.txt
+    owner: goku
+    group: goku
+    mode: "0640"
+    content: |
+      Bitacora de entrenamiento - goku
+
+      La Camara de Gravedad quedo en "mantenimiento" despues del ultimo
+      entrenamiento. El panel de control ya no sale a la red: ahora solo
+      responde en local, en el puerto 8081 (127.0.0.1:8081).
+
+      Escondi la Esfera de 5 Estrellas dentro del panel. Solo se libera
+      cuando alguien entrena DE VERDAD: a 100x de gravedad. Nadie aguanta
+      eso sin ser un Saiyan... suerte.

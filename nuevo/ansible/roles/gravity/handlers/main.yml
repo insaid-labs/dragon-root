@@ -1,0 +1,6 @@
+---
+- name: restart kaio-chamber
+  ansible.builtin.systemd:
+    name: kaio-chamber
+    state: restarted
+    daemon_reload: true

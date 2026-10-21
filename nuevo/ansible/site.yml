@@ -15,8 +15,9 @@
     - role: mail        # Dovecot POP3 + bulma mailbox (3 emails, ball2)
     - role: web         # Flask vuln app + SQLite + gunicorn + nginx
     - role: scheduler   # systemd timer running benign processor
-    - role: flags       # dragon balls 3-7, user/root/wish, mtimes
-    - role: privesc     # sudoers wildcard + radar-backup.sh + invoke_shenlong.sh
+    - role: flags       # dragon balls 3/4/6, user/root/wish, ssh key
+    - role: gravity     # internal Gravity Chamber (127.0.0.1:8081), ball 5
+    - role: privesc     # sudoers wildcard + radar-backup.sh + invoke_shenlong.sh + mtimes
 
   post_tasks:
     - name: Build summary

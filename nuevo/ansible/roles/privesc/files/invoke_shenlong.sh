@@ -10,10 +10,10 @@ declare -A SOURCE=(
   [1]="FTP anonymous          -> /srv/ftp/dragon_ball_1.txt"
   [2]="POP3 bulma mailbox      -> keepsake email attachment"
   [3]="Web deserialization RCE -> /var/capsule/uploads/processed/"
-  [4]="Hidden radar cache      -> /var/capsule/tmp/.radarcache/"
-  [5]="goku home               -> /home/goku/training/memories/"
+  [4]="Radar cache (friezacrypt)-> decrypt via /recovery, then save as dragon_ball_4.txt"
+  [5]="Gravity chamber (tunnel) -> http://127.0.0.1:8081, train at 100x gravity"
   [6]="root .secrets           -> /root/.secrets/"
-  [7]="Shenlong altar          -> /opt/shenlong/altar/"
+  [7]="Web altar summon (Burp)  -> POST /altar/summon, unseal w/ /opt/shenlong/altar/ki_sigil"
 )
 
 missing=()
