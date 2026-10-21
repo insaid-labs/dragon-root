@@ -37,8 +37,8 @@ gunicorn_runtime: "20.1.0"
 # Passwords are set as real OS passwords (used by SSH/PAM/Dovecot).
 system_users:
   - name: capsule
-    uid: 1000
-    comment: "Capsule service account"
+    uid: 1100                          # 1100, not 1000: the build host's first
+    comment: "Capsule service account" # admin user (e.g. maxo) already owns 1000
     shell: /usr/sbin/nologin
     password: "C4psule_svc_2015!"
     extra_groups: []
