@@ -104,6 +104,22 @@
     .replay{margin-top:22px; background:#141821; border:1px solid var(--line); color:var(--dim);
       border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer;}
     .replay:hover{color:var(--ink); border-color:var(--orange);}
+    /* two-mission ritual panel */
+    .mission{text-align:left; background:#0f1220; border:1px solid var(--line);
+      border-radius:12px; padding:14px 16px; margin:12px 0;}
+    .m-title{font-size:14px; font-weight:700; color:var(--amber); margin-bottom:6px;}
+    .m-text{font-size:12.5px; color:var(--dim); line-height:1.6; margin:0 0 12px;}
+    .m-text code{color:#cbd5e0; background:#0b0e14; padding:1px 5px; border-radius:4px; font-size:12px;}
+    .mission button{border:0; border-radius:10px; padding:11px 18px; cursor:pointer;
+      font-size:14px; font-weight:700; width:100%;
+      background:linear-gradient(180deg,var(--amber),var(--orange)); color:#5c2708;}
+    .mission button:hover{filter:brightness(1.08);} .mission button:disabled{opacity:.6;cursor:default;}
+    #invoke{background:linear-gradient(180deg,#63e6a8,#2f8f44); color:#06331d;}
+    .counter{font-family:ui-monospace,monospace; font-size:13px; color:var(--amber);
+      margin-bottom:10px; display:flex; align-items:center; gap:8px; justify-content:center;}
+    .counter .refresh{background:#141821; border:1px solid var(--line); color:var(--dim);
+      border-radius:6px; padding:1px 8px; font-size:12px; cursor:pointer; width:auto; font-weight:400;}
+    .counter .refresh:hover{color:var(--ink); border-color:var(--orange);}
   </style>
 </head>
 <body>
@@ -142,15 +158,34 @@
       </g>
     </svg>
 
-    <!-- ===================== RITUAL PANEL ===================== -->
+    <!-- ===================== RITUAL PANEL (2 misiones) ===================== -->
     <div class="ritual" id="ritual">
       <h1 id="r-title">Altar de Shenlong</h1>
-      <p class="flavor" id="r-flavor">
-        Las siete Esferas del Dragón laten ante el altar. Pronuncia el ritual de
-        invocación y despierta al dragón eterno... si eres digno.
-      </p>
-      <button id="summon">⟡ Iniciar invocación</button>
-      <div class="status" id="status"></div>
+
+      <!-- Misión 1 — reclamar la Esfera de 7 Estrellas (reto Burp) -->
+      <div class="mission">
+        <div class="m-title">⭐ Misión 1 — Reclamar la Esfera de 7 Estrellas</div>
+        <p class="m-text">
+          Kami-sama murió, así que <b>Dende</b> custodia la 7ª Esfera en el altar.
+          Realiza el ritual de invocación para arrancársela... si tu poder lo merece.
+        </p>
+        <button id="summon">⟡ Reclamar la Esfera de 7 Estrellas</button>
+        <div class="status" id="status"></div>
+      </div>
+
+      <!-- Misión 2 — invocar a Shenlong (bonus: requiere las 7) -->
+      <div class="mission">
+        <div class="m-title">🐉 Misión 2 — Invocar a Shenlong</div>
+        <p class="m-text">
+          Reúne las <b>7 Esferas</b> en <code>/var/capsule/dragonballs/</code> y pide
+          tu deseo. No hace falta ritual: solo tenerlas todas.
+        </p>
+        <div class="counter"><span id="counterText">Esferas reunidas: …/7</span>
+          <button class="refresh" id="refresh" title="Actualizar">↻</button>
+        </div>
+        <button id="invoke">🐉 Invocar a Shenlong</button>
+        <div class="status" id="invokeStatus"></div>
+      </div>
     </div>
 
     <!-- ===================== SHOUT ===================== -->
@@ -227,8 +262,10 @@
     <div class="awaken" id="awaken">～ S H E N L O N G   D E S P I E R T A ～</div>
 
     <div class="flag" id="flag" style="display:none">
-      <div class="t">⭐ Esfera de 7 Estrellas · liberada</div>
-      <code id="flagcode"></code>
+      <div id="ball7box">
+        <div class="t">⭐ Esfera de 7 Estrellas · liberada</div>
+        <code id="flagcode"></code>
+      </div>
       <div class="bonus" id="bonusbox" style="display:none">
         <div class="t">🐉 Deseo concedido</div>
         <code id="bonuscode"></code>
@@ -356,10 +393,9 @@
     }
 
     function applyLang(){
-      $("r-title").textContent=T.title; $("r-flavor").textContent=T.flavor;
-      $("summon").textContent=T.summon; $("shout").textContent=T.shout;
-      $("subshout").textContent=T.sub; $("awaken").textContent=T.awaken; $("replay").textContent=T.replay;
-      $("sc-lbl").textContent=T.power;
+      $("r-title").textContent=T.title;
+      $("shout").textContent=T.shout; $("subshout").textContent=T.sub;
+      $("awaken").textContent=T.awaken; $("replay").textContent=T.replay; $("sc-lbl").textContent=T.power;
     }
 
     async function loadStatus(){
@@ -372,6 +408,7 @@
       }
       layoutBalls(present);
       $("ballsCount").textContent=T.balls(collected);
+      const ct=$("counterText"); if(ct) ct.textContent="Esferas reunidas: "+collected+"/7";
       return collected;
     }
 
@@ -397,54 +434,81 @@
           data=await res.json(); }
         catch(e){ data={status:"denied",reasons:["El altar no responde (sin conexion al servidor)."]}; }
       }
-      $("summon").disabled=false; $("summon").textContent=T.summon;
+      $("summon").disabled=false; $("summon").textContent="⟡ Reclamar la Esfera de 7 Estrellas";
 
-      if(data.status==="granted"){ $("ritual").style.display="none"; reveal(data.ball7,data.bonus); }
+      if(data.status==="granted"){ $("ritual").style.display="none"; reveal(data.ball7,null); }
       else{
         const rs=(data.reasons||[]).map(r=>'<div class="reason">'+esc(r)+'</div>').join("");
         $("status").innerHTML='<div class="sleep">💤 '+esc(T.sleep)+'</div>'+rs;
       }
     }
 
+    // Misión 2 — invocar a Shenlong (bonus): sin ritual, solo las 7 reunidas.
+    async function invoke(){
+      $("invoke").disabled=true; $("invoke").textContent="Invocando..."; $("invokeStatus").innerHTML="";
+      const collected=await loadStatus();            // refresca el contador primero
+      let data;
+      if(FILE){
+        data = collected>=7
+          ? {status:"granted",bonus:"THM{t1m3_p4r4d0x_4ll_b4lls}"}
+          : {status:"incomplete",collected,message:"Reúne las 7 Esferas (tienes "+collected+"/7)."};
+      }else{
+        try{ const res=await fetch("/altar/invoke",{method:"POST"}); data=await res.json(); }
+        catch(e){ data={status:"incomplete",message:"El altar no responde."}; }
+      }
+      $("invoke").disabled=false; $("invoke").textContent="🐉 Invocar a Shenlong";
+      if(data.status==="granted"){ $("ritual").style.display="none"; reveal(null,data.bonus); }
+      else{ $("invokeStatus").innerHTML='<div class="reason">'+esc(data.message||("Tienes "+(data.collected||0)+"/7."))+'</div>'; }
+    }
+
     async function reveal(ball7,bonus){
       applyLang();
       vg.src="/static/altar/over9000.gif";
-      $("shoutZone").style.display="block";
       $("replay").style.display="inline-block";
       ["shout","subshout","awaken"].forEach(id=>$(id).classList.remove("hit","show"));
       resetDragon(); $("flag").classList.remove("show");
-      $("scouterDev").classList.remove("alert"); $("flag").style.display="none";
+      $("scouterDev").classList.remove("alert"); $("flag").style.display="none"; $("bonusbox").style.display="none";
       document.body.classList.remove("storm");
 
-      // scouter counts up to 9000, stalls
-      let v=6200; $("sc-lbl").textContent=T.scanning;
-      while(v<9000){ v+=Math.max(40,(9000-v)*0.14); if(v>9000)v=9000;
-        $("sc-num").textContent=Math.round(v); await sleep(26); }
-      $("sc-num").textContent="9000"; $("sc-lbl").textContent=T.power; await sleep(460);
-      for(let i=0;i<3;i++){ $("sc-num").textContent="89"+(90+i); await sleep(85);
-        $("sc-num").textContent="9000"; await sleep(85); }
+      if(ball7){   // Misión 1: secuencia del scouter "¡más de 9000!"
+        $("shoutZone").style.display="block";
+        let v=6200; $("sc-lbl").textContent=T.scanning;
+        while(v<9000){ v+=Math.max(40,(9000-v)*0.14); if(v>9000)v=9000;
+          $("sc-num").textContent=Math.round(v); await sleep(26); }
+        $("sc-num").textContent="9000"; $("sc-lbl").textContent=T.power; await sleep(460);
+        for(let i=0;i<3;i++){ $("sc-num").textContent="89"+(90+i); await sleep(85);
+          $("sc-num").textContent="9000"; await sleep(85); }
+        $("scouterDev").classList.add("alert"); $("sc-lbl").textContent="!! OVERLOAD !!";
+        let big=9001; for(let i=0;i<16;i++){ big+=Math.round(Math.random()*90000);
+          $("sc-num").textContent=big>99999?">9000":big; await sleep(45);} $("sc-num").textContent=">9000";
+        $("shout").classList.add("hit"); await sleep(240); $("subshout").classList.add("show");
+      } else {     // Misión 2: el deseo, sin scouter
+        $("shoutZone").style.display="none";
+      }
 
-      // OVERLOAD
-      $("scouterDev").classList.add("alert"); $("sc-lbl").textContent="!! OVERLOAD !!";
-      let big=9001; for(let i=0;i<16;i++){ big+=Math.round(Math.random()*90000);
-        $("sc-num").textContent=big>99999?">9000":big; await sleep(45);} $("sc-num").textContent=">9000";
-
-      // shout + all balls flash, dragon rises from them
-      $("shout").classList.add("hit"); await sleep(240); $("subshout").classList.add("show");
+      // esferas destellan + Shenlong se alza (común a ambas)
       $("balls").querySelectorAll(".ballPos").forEach(b=>{b.style.opacity=1;
         b.style.filter="drop-shadow(0 0 16px #ffbe3bdd)";});
       await sleep(400);
       document.body.classList.add("storm");
       drawDragon(); $("awaken").classList.add("show");
       await sleep(2000);
-      $("flag").style.display="block"; $("flagcode").textContent=ball7||"CAPSULE{•••••••}";
+
+      $("flag").style.display="block";
+      $("ball7box").style.display = ball7 ? "block" : "none";
+      if(ball7) $("flagcode").textContent=ball7;
       if(bonus){ $("bonuscode").textContent=bonus; $("bonusbox").style.display="block"; }
       requestAnimationFrame(()=>$("flag").classList.add("show"));
     }
 
     $("summon").addEventListener("click",summon);
-    $("replay").addEventListener("click",()=>reveal($("flagcode").textContent,$("bonuscode").textContent||null));
+    $("invoke").addEventListener("click",invoke);
+    $("refresh").addEventListener("click",loadStatus);
+    $("replay").addEventListener("click",()=>reveal(
+      $("ball7box").style.display==="none"?null:$("flagcode").textContent,
+      $("bonuscode").textContent||null));
     applyLang(); loadStatus();
+    if(!FILE) setInterval(loadStatus, 4000);   // mantiene el contador N/7 al día mientras copias esferas
   </script>
 </body>
 </html>

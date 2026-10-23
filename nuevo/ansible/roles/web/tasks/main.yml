@@ -62,16 +62,21 @@
     group: capsule
     mode: "0755"
 
-- name: Seal the 7-star ball and the bonus with the Seal of Ki
+# ball7.enc -> keyed with the root-only Seal of Ki (Mission 1, the Burp ritual).
+# bonus.enc -> keyed with the 7 ball flags joined (Mission 2: only derivable once
+#              all 7 are collected into the root-owned dragonballs dir).
+- name: Seal the 7-star ball and the bonus
   ansible.builtin.shell:
     cmd: >-
       printf '%s\n' '{{ item.flag }}'
-      | openssl enc -aes-256-cbc -pbkdf2 -salt -k '{{ altar_sigil }}'
+      | openssl enc -aes-256-cbc -pbkdf2 -salt -k '{{ item.key }}'
       -out '{{ app_root }}/seal/{{ item.name }}'
     creates: "{{ app_root }}/seal/{{ item.name }}"
   loop:
-    - { name: "ball7.enc", flag: "{{ flag_ball_7 }}" }
-    - { name: "bonus.enc", flag: "{{ flag_bonus }}" }
+    - { name: "ball7.enc", flag: "{{ flag_ball_7 }}", key: "{{ altar_sigil }}" }
+    - name: "bonus.enc"
+      flag: "{{ flag_bonus }}"
+      key: "{{ [flag_ball_1, flag_ball_2, flag_ball_3, flag_ball_4, flag_ball_5, flag_ball_6, flag_ball_7] | join(':') }}"
   no_log: true
 
 - name: Altar seal perms (www-data may read the ciphertext only)

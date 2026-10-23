@@ -326,8 +326,10 @@ k4m3h4m3h4-s3ll0-d3l-k1-2015
 rootbash-5.x# cat /opt/shenlong/altar/RITUAL.txt   # names the 3 ritual conditions
 ```
 
-Browse to `http://capsulecorp.htb/altar` **through Burp** and press *"Invocar a
-Shenlong"*. The page sends a summon the server rejects (wrong on every field):
+Kami-sama is dead, so Dende guards the 7th ball at the altar. Browse to
+`http://capsulecorp.htb/altar` **through Burp** and, under **Mission 1**, press
+*"Reclamar la Esfera de 7 Estrellas"*. The page sends a summon the server rejects
+(wrong on every field):
 
 ```
 POST /altar/summon
@@ -351,7 +353,7 @@ The server validates the ritual, then decrypts the ball with the submitted
 sigil and returns it:
 
 ```json
-{"status":"granted","ball7":"CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}","bonus":null, ...}
+{"status":"granted","ball7":"CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}", ...}
 ```
 
 -> **`CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}`**
@@ -390,8 +392,10 @@ Shenlong rises and grants the wish:
 -> **`THM{t1m3_p4r4d0x_4ll_b4lls}`**
 
 If any ball is missing, the script lists exactly which collection source you
-still owe and exits non-zero. (Equivalently, once all 7 are in the collection
-dir, re-running the altar summon returns the `bonus` field in its JSON too.)
+still owe and exits non-zero. (Equivalently — **Mission 2** on the web altar —
+once all 7 are in the collection dir, press *"Invocar a Shenlong"* / `POST
+/altar/invoke` and it returns the bonus. No Burp or sigil: the bonus is keyed to
+the 7 collected flags, so it only requires root to populate the dir.)
 
 ---
 

@@ -180,10 +180,11 @@ wakes for a flawless ritual.
 
 **Q2.** What is the flag of the **7th** Dragon Ball?
 **Answer:** `CAPSULE{s3v3n_st4rs_w1sh_gr4nt3d}`
-**Hint:** As root, loot the **Seal of Ki** from `/opt/shenlong/altar/ki_sigil`.
-Open `/altar` through **Burp**, press "Invocar", send `POST /altar/summon` to
-**Repeater** and fix the offering: `planet=earth`, `kami_sama=alive`, `ki` above
-9000, and paste the sigil.
+**Hint:** Kami-sama is dead, so **Dende** guards the 7th ball at the altar. As
+root, loot the **Seal of Ki** from `/opt/shenlong/altar/ki_sigil`. Open `/altar`
+through **Burp**, press **"Reclamar la Esfera de 7 Estrellas"**, send the
+`POST /altar/summon` to **Repeater** and fix the offering: `planet=earth`,
+`kami_sama=alive`, `ki` above 9000, and paste the sigil.
 
 ---
 
@@ -191,8 +192,9 @@ Open `/altar` through **Burp**, press "Invocar", send `POST /altar/summon` to
 
 **Q1.** Gather all seven balls and make your wish. What is the bonus flag?
 **Answer:** `THM{t1m3_p4r4d0x_4ll_b4lls}`
-**Hint:** Copy all 7 balls into `/var/capsule/dragonballs/` and run
-`/root/invoke_shenlong.sh` (or re-summon the altar once all 7 are collected).
+**Hint:** As root, copy all 7 balls into `/var/capsule/dragonballs/`, then press
+**"Invocar a Shenlong"** on `/altar` (no Burp this time — it only checks you have
+7/7). Equivalently: `bash /root/invoke_shenlong.sh`.
 
 ---
 

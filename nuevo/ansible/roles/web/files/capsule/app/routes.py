@@ -15,10 +15,12 @@ bp = Blueprint("main", __name__)
 UPLOAD_DIR = "/var/capsule/uploads"
 ADVISORY_PATH = "/var/www/capsule/advisory.txt"
 
-# ---- Shenlong altar (ball #7) -----------------------------------------------
-# The ritual is validated here; the 7-star flag + bonus are AES-encrypted with
-# the root-only "Seal of Ki" and only decrypted when the submitted sigil is
-# valid. The app (www-data) holds only the ciphertext — see group_vars/all.yml.
+# ---- Shenlong altar (ball #7 + wish bonus) ----------------------------------
+# Mission 1 (/altar/summon): ritual tamper (planet/kami_sama/ki) + the root-only
+#   "Seal of Ki" -> decrypts ball7.enc (AES, key = altar_sigil).
+# Mission 2 (/altar/invoke): gather the 7 balls into the root-owned collection
+#   dir -> decrypts bonus.enc (AES, key = the 7 collected flags joined).
+# The app runs as www-data and only ever holds the ciphertext.
 ALTAR_SEAL_DIR = "/var/www/capsule/seal"
 DRAGONBALLS_DIR = "/var/capsule/dragonballs"
 ALTAR_MIN_KI = 9000
@@ -48,16 +50,34 @@ def _altar_unseal(seal_name: str, sigil: str):
     return text
 
 
-def _balls_collected() -> int:
-    n = 0
+def _present_balls():
+    present = []
     for i in range(1, 8):
         p = os.path.join(DRAGONBALLS_DIR, "dragon_ball_%d.txt" % i)
         try:
             if os.path.isfile(p) and os.path.getsize(p) > 0:
-                n += 1
+                present.append(i)
         except OSError:
             pass
-    return n
+    return present
+
+
+def _bonus_key():
+    """The bonus is sealed with a key derived from the 7 collected ball flags
+    (colon-joined). It is only derivable once ALL 7 are gathered into the
+    root-owned collection dir — so the bonus requires root (to populate the dir),
+    not the sigil or Burp. www-data cannot assemble it on its own."""
+    parts = []
+    for i in range(1, 8):
+        p = os.path.join(DRAGONBALLS_DIR, "dragon_ball_%d.txt" % i)
+        try:
+            with open(p, "r", encoding="utf-8", errors="replace") as fh:
+                parts.append(fh.read().strip())
+        except OSError:
+            return None
+    if any(not x for x in parts):
+        return None
+    return ":".join(parts)
 
 
 def _db():
@@ -164,16 +184,9 @@ def altar():
 
 @bp.route("/altar/status")
 def altar_status():
-    # Which of the 7 balls are already gathered in the collection dir. Lets the
-    # altar light up the ones the player has collected (root populates the dir).
-    present = []
-    for i in range(1, 8):
-        p = os.path.join(DRAGONBALLS_DIR, "dragon_ball_%d.txt" % i)
-        try:
-            if os.path.isfile(p) and os.path.getsize(p) > 0:
-                present.append(i)
-        except OSError:
-            pass
+    # Which of the 7 balls are gathered in the collection dir. The altar page
+    # polls this to keep the "N/7" counter live as the player copies balls in.
+    present = _present_balls()
     return {"present": present, "collected": len(present)}
 
 
@@ -213,13 +226,32 @@ def altar_summon():
             "Pronuncias el ritual completo... pero el Sello del Ki no es valido. "
             "Solo quien domina el santuario (root) posee el verdadero sello."]}
 
-    collected = _balls_collected()
-    bonus = _altar_unseal("bonus.enc", sigil) if collected >= 7 else None
     return {
-        "status": "granted", "awake": True, "ball7": ball7, "bonus": bonus,
-        "collected": collected,
-        "message": "¡MAS DE 9000! Shenlong despierta y libera la Esfera de 7 Estrellas.",
+        "status": "granted", "awake": True, "ball7": ball7,
+        "collected": len(_present_balls()),
+        "message": "¡MAS DE 9000! Arrancas la Esfera de 7 Estrellas al guardian del altar.",
     }
+
+
+@bp.route("/altar/invoke", methods=["POST"])
+def altar_invoke():
+    # MISSION 2 (the wish): no ritual/sigil/Burp — just gather the 7 balls into
+    # the root-owned collection dir and press the button. The bonus is decrypted
+    # with the collected-balls key (see _bonus_key), so it needs root to populate
+    # the dir, nothing more.
+    present = _present_balls()
+    if len(present) < 7:
+        return {"status": "incomplete", "awake": False, "collected": len(present),
+                "present": present,
+                "message": ("Shenlong no responde: reune las 7 Esferas del Dragon en "
+                            "/var/capsule/dragonballs/ (tienes %d/7)." % len(present))}
+    bonus = _altar_unseal("bonus.enc", _bonus_key() or "")
+    if not bonus:
+        return {"status": "incomplete", "awake": False, "collected": 7, "present": present,
+                "message": ("Hay 7 archivos en el altar, pero su poder no es autentico. "
+                            "Reune las esferas de verdad.")}
+    return {"status": "granted", "awake": True, "bonus": bonus, "collected": 7,
+            "message": "Las 7 Esferas brillan al unisono. Shenlong se alza y concede tu deseo."}
 
 
 @bp.route("/recovery")
