@@ -4,11 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>No More Capsule — Recuperador de Esferas</title>
-  <!--
-       NOTE (lab maintainers): the friezacrypt free key below MUST match
-       group_vars/all.yml -> ball4_decrypt_key. This portal is the intended
-       way for players to recover the key for the "captured" dragon ball #4.
-  -->
+  {# La clave de descifrado y la extensión las inyecta Flask desde
+     group_vars/all.yml (ball4_decrypt_key / ball4_cipher_ext). Fuente única
+     de verdad: no se hardcodea nada aquí. #}
   <style>
     :root{
       --orange:#ed8936; --orange-bright:#ffb347; --amber:#ffcf6b;
@@ -93,6 +91,22 @@
     .copy:hover{color:var(--ink); border-color:var(--orange);}
     .note{margin-top:14px; font-size:13px; color:var(--dim); line-height:1.6;}
 
+    .families{margin-top:18px;}
+    .families h2{font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--orange); margin:0 0 4px; font-weight:700;}
+    .families .sub{font-size:12px; color:var(--dim); margin:0 0 14px; line-height:1.6;}
+    .flist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+    .frow{display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+      padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:#0b0e14;}
+    .frow .fname{font-weight:700; font-size:14px; min-width:128px;}
+    .frow .fmeta{font-size:12px; color:var(--dim); flex:1; min-width:180px;}
+    .frow .fmeta code{font-family:ui-monospace,monospace; color:#9fb0c7;}
+    .frow .fdate{font-size:12px; color:#7a8296; white-space:nowrap;}
+    .pill{font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap;}
+    .pill.free{background:#12351f; color:var(--green); border:1px solid #1d5636;}
+    .pill.analysis{background:#3a2d12; color:var(--amber); border:1px solid #5a4620;}
+    .pill.none{background:#3a1b1b; color:var(--red); border:1px solid #5a2a2a;}
+
     .foot{margin-top:22px; text-align:center; font-size:11px; color:#4e5668;}
     .foot a{color:#6b7790; text-decoration:none;}
   </style>
@@ -116,6 +130,16 @@
       <div class="result" id="result"></div>
     </div>
 
+    <div class="panel families">
+      <h2>Base de descifradores — familias registradas</h2>
+      <p class="sub">
+        Catálogo mantenido por la División de Respuesta a Incidentes de Capsule Corp.
+        Las familias marcadas como <b>gratuitas</b> ya tienen clave pública publicada;
+        el resto siguen en análisis o sin descifrador conocido. No pagues el rescate.
+      </p>
+      <ul class="flist" id="flist"></ul>
+    </div>
+
     <div class="foot">
       Capsule Corp · División de Respuesta a Incidentes ·
       inspirado en <a>nomoreransom.org</a>
@@ -123,19 +147,31 @@
   </div>
 
   <script>
-    // ---- Free-decryptor database (friezacrypt is the intended one) ----------
-    // KEEP 'key' IN SYNC WITH group_vars/all.yml -> ball4_decrypt_key
+    // ---- Base de descifradores (la clave y la extensión las inyecta Flask ---
+    //      desde all.yml -> ball4_decrypt_key / ball4_cipher_ext). friezacrypt
+    //      es la única con descifrador gratuito; el resto son cháchara temática.
+    const FREE_EXT = "{{ ball4_ext }}";
     const DB = {
-      friezacrypt: {
+      "{{ ball4_ext }}": {
         family: "FriezaLocker",
         free: true,
-        key: "g1nyu-f0rc3-l34k3d",
+        key: "{{ ball4_key }}",
         cipher: "AES-256-CBC (pbkdf2)",
-        blurb: "Cifrado débil con clave reutilizada. Clave de descifrado filtrada y publicada."
+        date: "2015-05-10",
+        blurb: "AES-256 correcto, pero con clave filtrada y reutilizada: eso basta para recuperar la esfera."
       },
-      saibacrypt: { family: "Saibaman",  free: false },
-      celllock:   { family: "Cell-Lock", free: false },
-      majinlock:  { family: "MajinSeal", free: false }
+      coolerlock: { family: "CoolerCrypt",    free: false, status: "analysis", cipher: "AES-256-CBC",
+        blurb: "El hermano mayor de FriezaLocker. Variante más fría y pulida; en análisis, aún sin clave pública." },
+      ginyulock:  { family: "GinyuForce",     free: false, status: "none",     cipher: "AES-256-CBC (IV reutilizado)",
+        blurb: "Famosos por 'cambiar de cuerpo': reutilizan el IV entre víctimas. Roto en teoría, descifrador no publicado." },
+      saibacrypt: { family: "SaibamanLocker", free: false, status: "none",     cipher: "XOR rodante",
+        blurb: "Brotan de a seis. Débiles por separado, molestos en volumen." },
+      brolycrypt: { family: "BrolyWrath",     free: false, status: "analysis", cipher: "AES-256-GCM",
+        blurb: "Legendario. Potencia de cifrado incontrolable; el equipo sigue intentando acorralarlo." },
+      celllock:   { family: "CellSeal",       free: false, status: "none",     cipher: "RSA-2048",
+        blurb: "Forma perfecta: clave asimétrica. No existe descifrador conocido." },
+      majinlock:  { family: "MajinSeal",      free: false, status: "none",     cipher: "ChaCha20",
+        blurb: "Absorbe y se transforma. Cada muestra parece distinta; sin avances por ahora." }
     };
 
     const $ = (id) => document.getElementById(id);
@@ -186,6 +222,29 @@
         '<div class="note">Ejecuta el comando en el servidor donde está el archivo. ' +
         'Al terminar tendrás <b>dragon_ball_4.txt</b> con la esfera liberada. 🐉</div>';
     }
+
+    // ---- Catálogo informativo de familias (se pinta al cargar) --------------
+    const FAMILY_ORDER = [FREE_EXT, "coolerlock", "ginyulock", "saibacrypt",
+                          "brolycrypt", "celllock", "majinlock"];
+    function pill(h){
+      if (h.free) return '<span class="pill free">✓ gratuito</span>';
+      if (h.status === "analysis") return '<span class="pill analysis">🔬 en análisis</span>';
+      return '<span class="pill none">✗ sin descifrador</span>';
+    }
+    (function renderFamilies(){
+      const ul = $("flist");
+      ul.innerHTML = FAMILY_ORDER.map((ext) => {
+        const h = DB[ext];
+        if (!h) return "";
+        return '<li class="frow">' +
+          '<span class="fname">' + esc(h.family) + '</span>' +
+          '<span class="fmeta">.' + esc(ext) + ' · <code>' + esc(h.cipher || "—") + '</code>' +
+            (h.blurb ? '<br>' + esc(h.blurb) : '') + '</span>' +
+          '<span class="fdate">' + (h.date ? ('liberado ' + esc(h.date)) : '—') + '</span>' +
+          pill(h) +
+        '</li>';
+      }).join("");
+    })();
 
     $("go").addEventListener("click", lookup);
     $("ext").addEventListener("keydown", (e) => { if (e.key === "Enter") lookup(); });

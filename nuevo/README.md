@@ -1,6 +1,6 @@
 # Capsule Corporation — CTF Box (Dragon Ball themed)
 
-A self-contained, deliberately-vulnerable HackTheBox-style **Medium** box.
+A self-contained, deliberately-vulnerable TryHackMe-style **Medium** box.
 Theme: collect the 7 Dragon Balls by exploiting Capsule Corp's systems. The
 core lesson is **insecure deserialization (CVE-2024-42069, CWE-502)** chained
 into a **Linux sudo `tar` wildcard** privilege escalation.
@@ -38,7 +38,7 @@ DragonRoot/
 │   └── metasploit/
 │       └── capsule_radar_deserialization.rb
 └── writeup/
-    └── HTB-CapsuleCorp-Writeup.md # full official-style writeup (all 7 balls)
+    └── THM-CapsuleCorp-Writeup.md # full official-style writeup (all 7 balls)
 ```
 
 ---
@@ -61,7 +61,7 @@ re-applies state.
 
 When it finishes you'll have four services up (21/22/80/110) and the full
 exploit chain in place. Validate by running the chain from a clean recon
-(`writeup/HTB-CapsuleCorp-Writeup.md`).
+(`writeup/THM-CapsuleCorp-Writeup.md`).
 
 ### Exporting an OVA
 

@@ -32,7 +32,7 @@ balls before he does.
 Deploy the machine, give it a minute to boot, and (optionally) map the host:
 
 ```
-<MACHINE_IP>   capsulecorp.htb
+<MACHINE_IP>   capsulecorp.thm
 ```
 
 **Question:** I have deployed the machine and I'm ready to gather the Dragon Balls.

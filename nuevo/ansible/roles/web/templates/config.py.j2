@@ -13,6 +13,12 @@ APP_PARADOX_DATE = "{{ app_changelog_paradox_date }}"
 # --- Data store ---
 DB_PATH = "{{ db_path }}"
 
+# --- Ball #4 "No More Capsule" recovery portal (fuente única de verdad) ---
+# El portal /recovery toma la clave y la extensión de aquí (vía Flask), no las
+# hardcodea en la plantilla. Mantiene sincronía con el sellado de la bola #4.
+BALL4_DECRYPT_KEY = "{{ ball4_decrypt_key }}"
+BALL4_CIPHER_EXT = "{{ ball4_cipher_ext }}"
+
 # --- Deployment / maintenance access ---
 # Used by the radar deploy scripts to push builds to the field-test box.
 SSH_USER = "{{ ssh_loot_user }}"

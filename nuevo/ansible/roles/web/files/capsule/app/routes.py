@@ -66,18 +66,37 @@ def _bonus_key():
     """The bonus is sealed with a key derived from the 7 collected ball flags
     (colon-joined). It is only derivable once ALL 7 are gathered into the
     root-owned collection dir — so the bonus requires root (to populate the dir),
-    not the sigil or Burp. www-data cannot assemble it on its own."""
+    not the sigil or Burp. www-data cannot assemble it on its own.
+
+    Returns a (key, error) tuple so /altar/invoke can explain WHY the key could
+    not be derived instead of failing silently. ``error`` is None on success, or
+    one of: ``unreadable:<N,...>`` (the file exists but www-data cannot read it —
+    usually a permissions issue), ``empty:<N,...>`` or ``missing:<N,...>``.
+    """
     parts = []
+    unreadable, empty, missing = [], [], []
     for i in range(1, 8):
         p = os.path.join(DRAGONBALLS_DIR, "dragon_ball_%d.txt" % i)
+        if not os.path.isfile(p):
+            missing.append(i)
+            continue
         try:
             with open(p, "r", encoding="utf-8", errors="replace") as fh:
-                parts.append(fh.read().strip())
+                val = fh.read().strip()
         except OSError:
-            return None
-    if any(not x for x in parts):
-        return None
-    return ":".join(parts)
+            unreadable.append(i)
+            continue
+        if not val:
+            empty.append(i)
+            continue
+        parts.append(val)
+    if missing:
+        return None, "missing:%s" % ",".join(map(str, missing))
+    if unreadable:
+        return None, "unreadable:%s" % ",".join(map(str, unreadable))
+    if empty:
+        return None, "empty:%s" % ",".join(map(str, empty))
+    return ":".join(parts), None
 
 
 def _db():
@@ -245,11 +264,35 @@ def altar_invoke():
                 "present": present,
                 "message": ("Shenlong no responde: reune las 7 Esferas del Dragon en "
                             "/var/capsule/dragonballs/ (tienes %d/7)." % len(present))}
-    bonus = _altar_unseal("bonus.enc", _bonus_key() or "")
+
+    key, err = _bonus_key()
+    # Don't fail silently: if the 7 files are present but the web app (www-data)
+    # cannot READ them, that's a permissions problem, not a wrong-flag problem.
+    # Point the player at the documented, robust path: run invoke_shenlong.sh as
+    # root (it reads /root/wish_granted.txt directly and never needs www-data to
+    # read the collected balls).
+    if err and err.startswith("unreadable"):
+        balls = err.split(":", 1)[1]
+        return {"status": "error", "awake": False, "collected": 7, "present": present,
+                "reason": err,
+                "message": ("Las 7 Esferas estan en el altar, pero el guardian del radar "
+                            "(www-data) no puede LEERLAS (esferas %s): es un problema de "
+                            "permisos, no de autenticidad. Esta via web necesita que las "
+                            "esferas sean legibles por www-data (p.ej. copialas con modo "
+                            "0644). La via oficial y robusta es invocar a Shenlong como "
+                            "root: ejecuta /root/invoke_shenlong.sh." % balls)}, 403
+    if err:
+        return {"status": "incomplete", "awake": False, "collected": 7, "present": present,
+                "reason": err,
+                "message": ("Hay 7 archivos en el altar, pero su contenido no es valido "
+                            "(%s). Reune las esferas de verdad." % err)}
+
+    bonus = _altar_unseal("bonus.enc", key or "")
     if not bonus:
         return {"status": "incomplete", "awake": False, "collected": 7, "present": present,
-                "message": ("Hay 7 archivos en el altar, pero su poder no es autentico. "
-                            "Reune las esferas de verdad.")}
+                "message": ("Las 7 Esferas estan completas y legibles, pero su poder combinado "
+                            "no abre el sello: alguna no es la esfera autentica. Reunelas de "
+                            "verdad, o invoca a Shenlong como root con /root/invoke_shenlong.sh.")}
     return {"status": "granted", "awake": True, "bonus": bonus, "collected": 7,
             "message": "Las 7 Esferas brillan al unisono. Shenlong se alza y concede tu deseo."}
 
@@ -259,8 +302,15 @@ def recovery():
     # Public "No More Capsule" decryptor portal. Themed after nomoreransom.org:
     # a player who found the friezacrypt-sealed ball #4 looks up the family by
     # extension here and gets the leaked key + the exact openssl command. The
-    # family->key mapping lives client-side in the template (see all.yml note).
-    return render_template("recovery.html")
+    # The family->key mapping is injected from Flask config (sourced from
+    # all.yml -> ball4_decrypt_key / ball4_cipher_ext), so there is a single
+    # source of truth and no drift between the portal and the sealed ball.
+    cfg = current_app.config
+    return render_template(
+        "recovery.html",
+        ball4_key=cfg["BALL4_DECRYPT_KEY"],
+        ball4_ext=cfg["BALL4_CIPHER_EXT"],
+    )
 
 
 @bp.route("/security/CVE-2024-42069")

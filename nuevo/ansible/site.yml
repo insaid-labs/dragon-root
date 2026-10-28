@@ -1,7 +1,7 @@
 ---
 # ============================================================================
 #  Capsule Corporation CTF — master playbook
-#  Builds a self-contained, deliberately-vulnerable HackTheBox-style box.
+#  Builds a self-contained, deliberately-vulnerable TryHackMe-style box.
 #  Run ONLY on an isolated lab VM. Do not expose to the internet.
 # ============================================================================
 - name: Build Capsule Corp CTF box

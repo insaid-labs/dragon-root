@@ -6,8 +6,8 @@
 # ============================================================================
 
 # ---- Identity / theming ------------------------------------------------------
-box_hostname: capsulecorp.htb
-box_domain: capsulecorp.htb
+box_hostname: capsulecorp.thm
+box_domain: capsulecorp.thm
 theme_year: 2015
 
 # touch -t format is [[CC]YY]MMDDhhmm[.ss]
@@ -100,8 +100,10 @@ flag_bonus:  "THM{t1m3_p4r4d0x_4ll_b4lls}"
 # a toy "ransomware" (friezacrypt). It is just AES-256-CBC with a leaked key —
 # the player recovers the key from the in-box "No More Capsule" portal
 # (/recovery) and decrypts it, mirroring the real nomoreransom.org workflow.
-# NOTE: ball4_decrypt_key must stay in sync with the mapping hardcoded in
-# roles/web/files/capsule/app/templates/recovery.html.
+# SINGLE SOURCE OF TRUTH: ball4_decrypt_key / ball4_cipher_ext are the only
+# place these live. They are injected into config.py (BALL4_DECRYPT_KEY /
+# BALL4_CIPHER_EXT) and from there into the /recovery portal via Flask, and the
+# ball #4 sealing (roles/flags) reads them directly — so there is no drift.
 ball4_cipher_ext: "friezacrypt"
 ball4_cipher_family: "FriezaLocker"
 ball4_decrypt_key: "g1nyu-f0rc3-l34k3d"
